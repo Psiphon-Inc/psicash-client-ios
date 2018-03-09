@@ -27,10 +27,15 @@ NOTES
  - See the note at the bottom of this file about proxy support.
 */
 
-NSString * const PSICASH_SERVER_HOSTNAME = @"http://127.0.0.1:51337"; // TODO
+NSString * const PSICASH_SERVER_SCHEME = @"http"; // @"https"; // TODO
+NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1"; // TODO
+int const PSICASH_SERVER_PORT = 51337; // 443; // TODO
 NSTimeInterval const TIMEOUT_SECS = 100.0; // TODO Probably longer than the server timeout.
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 NSUInteger const REQUEST_RETRY_LIMIT = 2;
+
+@implementation PsiCashPurchasePrice
+@end
 
 @implementation PsiCash {
     UserIdentity *userID;
@@ -48,15 +53,17 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 #pragma mark - GetBalance
 
-- (void)getBalance:(void (^)(PsiCashRequestStatus status,
-                             NSNumber* balance,
-                             NSError *error))completionHandler
+- (void)getBalance:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                     NSNumber*_Nullable balance,
+                                     NSError*_Nullable error))completionHandler
 {
     NSMutableURLRequest *request = [PsiCash createRequestFor:@"/balance"
                                                   withMethod:@"GET"
+                                              withQueryItems:nil
                                               withAuthTokens:self->userID.authTokens];
 
     [self doRequestWithRetry:request
+                    useCache:NO
              numberOfRetries:REQUEST_RETRY_LIMIT
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error) {
 
@@ -142,6 +149,140 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     *isAccount = [(NSNumber*)data[@"IsAccount"] boolValue];
 }
 
+#pragma mark - GetPurchasePrices
+
+- (void)getPurchasePricesForClasses:(NSArray*_Nonnull)classes
+                  completionHandler:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                                      NSArray*_Nullable purchasePrices,
+                                                      NSError*_Nullable error))completionHandler
+{
+    NSMutableArray *queryItems = [NSMutableArray new];
+    for (NSString *val in classes) {
+        NSURLQueryItem *qi = [NSURLQueryItem queryItemWithName:@"class" value:val];
+        [queryItems addObject:qi];
+    }
+
+    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/purchase-prices"
+                                                  withMethod:@"GET"
+                                              withQueryItems:queryItems
+                                              withAuthTokens:self->userID.authTokens];
+
+    [self doRequestWithRetry:request
+                    useCache:YES
+             numberOfRetries:REQUEST_RETRY_LIMIT
+           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
+    {
+       if (error) {
+           error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
+           completionHandler(kInvalid, nil, error);
+           return;
+       }
+
+       if (response.statusCode == kHTTPStatusOK) {
+           if (!data) {
+               error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
+               completionHandler(kInvalid, nil, error);
+               return;
+           }
+
+           NSArray* purchasePrices;
+           [PsiCash parseGetPurchasePricesResponse:data purchasePrices:&purchasePrices withError:&error];
+           if (error != nil) {
+               error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
+               completionHandler(kInvalid, nil, error);
+               return;
+           }
+
+           completionHandler(kSuccess, purchasePrices, nil);
+           return;
+       }
+       else if (response.statusCode == kHTTPStatusUnauthorized) {
+           completionHandler(kInvalidTokens, nil, nil);
+           return;
+       }
+       else if (response.statusCode == kHTTPStatusInternalServerError) {
+           completionHandler(kServerError, nil, nil);
+           return;
+       }
+       else {
+           error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
+                                fromFunction:__FUNCTION__];
+           completionHandler(kInvalid, nil, error);
+           return;
+       }
+   }];
+}
+
++ (void)parseGetPurchasePricesResponse:(NSData*_Nonnull)jsonData
+                        purchasePrices:(NSArray**_Nonnull)purchasePrices
+                             withError:(NSError**_Nullable)error
+{
+    *error = nil;
+    *purchasePrices = nil;
+
+    id object = [NSJSONSerialization
+                 JSONObjectWithData:jsonData
+                 options:0
+                 error:error];
+
+    if (*error) {
+        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
+        return;
+    }
+
+    if (![object isKindOfClass:[NSArray class]]) {
+        *error = [NSError errorWithMessage:@"Invalid JSON structure" fromFunction:__FUNCTION__];
+        return;
+    }
+
+    NSArray *data = object;
+
+    NSMutableArray *result = [[NSMutableArray alloc] init];
+
+    for (id item in data) {
+        if (![item isKindOfClass:[NSDictionary class]]) {
+            *error = [NSError errorWithMessage:@"Invalid JSON substructure" fromFunction:__FUNCTION__];
+            return;
+        }
+
+        NSDictionary *itemDict = item;
+
+        PsiCashPurchasePrice *purchasePrice = [[PsiCashPurchasePrice alloc] init];
+
+        // Note: isKindOfClass is false if the key isn't found
+
+        if (![itemDict[@"Price"] isKindOfClass:NSNumber.class]) {
+            *error = [NSError errorWithMessage:@"Price is not a number" fromFunction:__FUNCTION__];
+            return;
+        }
+        purchasePrice.price = itemDict[@"Price"];
+
+        if (![itemDict[@"Class"]  isKindOfClass:NSString.class]) {
+            *error = [NSError errorWithMessage:@"Class is not a string" fromFunction:__FUNCTION__];
+            return;
+        }
+        else if ([(NSString*)itemDict[@"Class"] length] == 0) {
+            *error = [NSError errorWithMessage:@"Class string is empty" fromFunction:__FUNCTION__];
+            return;
+        }
+        purchasePrice.transactionClass = itemDict[@"Class"];
+
+        if (![itemDict[@"Distinguisher"]  isKindOfClass:NSString.class]) {
+            *error = [NSError errorWithMessage:@"Distinguisher is not a string" fromFunction:__FUNCTION__];
+            return;
+        }
+        else if ([(NSString*)itemDict[@"Distinguisher"] length] == 0) {
+            *error = [NSError errorWithMessage:@"Distinguisher string is empty" fromFunction:__FUNCTION__];
+            return;
+        }
+        purchasePrice.distinguisher = itemDict[@"Distinguisher"];
+
+        [result addObject:purchasePrice];
+    }
+
+    *purchasePrices = result;
+}
+
 #pragma mark - NewTracker
 
 /*!
@@ -158,9 +299,11 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 {
     NSMutableURLRequest *request = [PsiCash createRequestFor:@"/new-tracker"
                                                   withMethod:@"POST"
+                                              withQueryItems:nil
                                               withAuthTokens:nil];
 
     [self doRequestWithRetry:request
+                    useCache:NO
              numberOfRetries:REQUEST_RETRY_LIMIT
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error) {
 
@@ -268,9 +411,11 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 {
     NSMutableURLRequest *request = [PsiCash createRequestFor:@"/validate-tokens"
                                                   withMethod:@"GET"
+                                              withQueryItems:nil
                                               withAuthTokens:self->userID.authTokens];
 
     [self doRequestWithRetry:request
+                    useCache:NO
              numberOfRetries:REQUEST_RETRY_LIMIT
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error) {
 
@@ -356,10 +501,10 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 #pragma mark - ValidateOrAcquireTokens
 
-- (void)validateOrAcquireTokens:(void (^)(PsiCashRequestStatus status,
-                                          NSArray *validTokenTypes,
-                                          BOOL isAccount,
-                                          NSError *error))completionHandler
+- (void)validateOrAcquireTokens:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                                  NSArray*_Nullable validTokenTypes,
+                                                  BOOL isAccount,
+                                                  NSError*_Nullable error))completionHandler
 {
     NSDictionary *authTokens = self->userID.authTokens;
     if (!authTokens || [authTokens count] == 0) {
@@ -451,7 +596,10 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 #pragma mark - helpers
 
-+ (NSMutableURLRequest*)createRequestFor:(NSString*)path withMethod:(NSString*)method withAuthTokens:(NSDictionary*)authTokens
++ (NSMutableURLRequest*)createRequestFor:(NSString*_Nonnull)path
+                              withMethod:(NSString*_Nonnull)method
+                          withQueryItems:(NSArray*_Nullable)queryItems
+                          withAuthTokens:(NSDictionary*_Nullable)authTokens
 {
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
     [request setCachePolicy:NSURLRequestUseProtocolCachePolicy];
@@ -459,8 +607,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
     [request setHTTPMethod:method];
 
-    NSString* urlString = [PSICASH_SERVER_HOSTNAME stringByAppendingString:path];
-    [request setURL:[NSURL URLWithString:urlString]];
+    NSURLComponents *urlComponents = [NSURLComponents new];
+    urlComponents.scheme = PSICASH_SERVER_SCHEME;
+    urlComponents.host = PSICASH_SERVER_HOSTNAME;
+    urlComponents.port = [[NSNumber alloc] initWithInt:PSICASH_SERVER_PORT];
+    urlComponents.path = path;
+    urlComponents.queryItems = queryItems;
+
+    [request setURL:urlComponents.URL];
 
     if (authTokens != nil)
     {
@@ -472,16 +626,20 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 // If error is non-nil, data and response will be nil.
 - (void)doRequestWithRetry:(NSURLRequest*)request
-             numberOfRetries:(NSUInteger)numRetries // Set to REQUEST_RETRY_LIMIT on first call
+                  useCache:(BOOL)useCache
+           numberOfRetries:(NSUInteger)numRetries // Set to REQUEST_RETRY_LIMIT on first call
          completionHandler:(void (^)(NSData *data, NSHTTPURLResponse *response, NSError *error))completionHandler
 {
     __weak typeof (self) weakSelf = self;
 
     __block NSInteger remainingRetries = numRetries;
 
-    NSURLSessionConfiguration* config = NSURLSessionConfiguration.ephemeralSessionConfiguration.copy;
-    config.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
+    NSURLSessionConfiguration* config = NSURLSessionConfiguration.defaultSessionConfiguration.copy;
     config.timeoutIntervalForRequest = TIMEOUT_SECS;
+
+    if (!useCache) {
+        config.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
+    }
 
     NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
 
@@ -511,6 +669,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
                 // Recursive retry.
                 [weakSelf doRequestWithRetry:request
+                                    useCache:useCache
                              numberOfRetries:remainingRetries
                            completionHandler:completionHandler];
             });

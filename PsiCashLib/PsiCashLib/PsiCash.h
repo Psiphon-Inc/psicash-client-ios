@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
+
 typedef enum {
     kInvalid = -1,
     kSuccess = 0,
@@ -19,9 +20,18 @@ typedef enum {
     kServerError
 } PsiCashRequestStatus;
 
+
+@interface PsiCashPurchasePrice : NSObject
+@property NSNumber*_Nonnull price;
+@property NSString*_Nonnull distinguisher;
+@property NSString*_Nonnull transactionClass;
+@end
+
+
 @interface PsiCash : NSObject
 
-- (id)init;
+- (id _Nonnull)init;
+
 
 /*!
  If no existing tokens are stored locally, new ones will be acquired. Otherwise,
@@ -29,18 +39,46 @@ typedef enum {
 
  If error is non-nil, the request failed utterly and no other params are valid.
 
+ validTokenTypes will contain the available valid token types, like
+ @code ["earner", "indicator", "spender"] @endcode
+
+ isAccount will be true if the tokens belong to an Account or false if a Tracker.
+
  Possible status codes:
 
     • kSuccess
 
- ??????????????
-
     • kServerError
  */
-- (void)validateOrAcquireTokens:(void (^)(PsiCashRequestStatus status,
-                                          NSArray *validTokenTypes,
-                                          BOOL isAccount,
-                                          NSError *error))completionHandler;
+- (void)validateOrAcquireTokens:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                                   NSArray*_Nullable validTokenTypes,
+                                                   BOOL isAccount,
+                                                   NSError*_Nullable error))completionHandler;
+
+
+/*!
+ Retrieves purchase prices from the server. The set of purchase prices retrieved
+ will be determined by the transaction classes provided.
+
+ If error is non-nil, the request failed utterly and no other params are valid.
+
+ purchasePrices is an array of PsiCashPurchasePrice objects. May be emtpy if no
+ transaction types of the given class(es) are found.
+
+ Possible status codes:
+
+     • kSuccess
+
+     • kInvalidTokens: TODO: Figure out how to handle this.
+
+     • kServerError
+
+ */
+- (void)getPurchasePricesForClasses:(NSArray*_Nonnull)classes
+                  completionHandler:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                                       NSArray*_Nullable purchasePrices,
+                                                       NSError*_Nullable error))completionHandler;
+
 
 /*!
  Retrieves the user's balance.
@@ -55,9 +93,10 @@ typedef enum {
 
     • kServerError
  */
-- (void)getBalance:(void (^)(PsiCashRequestStatus status,
-                             NSNumber *balance,
-                             NSError *error))completionHandler;
+- (void)getBalance:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                      NSNumber*_Nullable balance,
+                                      NSError*_Nullable error))completionHandler;
+
 
 /*!
  Makes a new transaction for an "expiring-purchase" class, such as "speed-boost".
@@ -102,15 +141,15 @@ typedef enum {
     • kServerError: An error occurred on the server. Probably report to the user and
       try again later.
 */
-- (void)newExpiringPurchaseTransactionForClass:(NSString*)transactionClass
-                             withDistinguisher:(NSString*)transactionDistinguisher 
-                             withExpectedPrice:(NSNumber*)expectedPrice
-                                withCompletion:(void (^)(PsiCashRequestStatus status,
-                                                         NSNumber *price,
-                                                         NSNumber *balance,
-                                                         NSDate *expiry,
-                                                         NSString *authorization,
-                                                         NSError *error))completion;
+- (void)newExpiringPurchaseTransactionForClass:(NSString*_Nonnull)transactionClass
+                             withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
+                             withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
+                                withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                                         NSNumber*_Nullable price,
+                                                         NSNumber*_Nullable balance,
+                                                         NSDate*_Nullable expiry,
+                                                         NSString*_Nullable authorization,
+                                                         NSError*_Nullable error))completion;
 
 @end
 
