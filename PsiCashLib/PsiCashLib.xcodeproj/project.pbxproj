@@ -16,6 +16,7 @@
 		6647F99F204CD53100C7457B /* NSError+NSErrorExt.m in Sources */ = {isa = PBXBuildFile; fileRef = 6647F99B204CD53100C7457B /* NSError+NSErrorExt.m */; };
 		66C0139C204D7B4C00F55E04 /* UserIdentity.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C0139B204D7B4C00F55E04 /* UserIdentity.m */; };
 		66C0139E204D7B7000F55E04 /* UserIdentity.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C0139D204D7B7000F55E04 /* UserIdentity.h */; };
+		66C013A020519A3100F55E04 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 66C0139F20519A3100F55E04 /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,6 +42,8 @@
 		6647F99B204CD53100C7457B /* NSError+NSErrorExt.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSError+NSErrorExt.m"; sourceTree = "<group>"; };
 		66C0139B204D7B4C00F55E04 /* UserIdentity.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UserIdentity.m; sourceTree = "<group>"; };
 		66C0139D204D7B7000F55E04 /* UserIdentity.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserIdentity.h; sourceTree = "<group>"; };
+		66C0139F20519A3100F55E04 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTTPStatusCodes.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +68,7 @@
 		6647F974204CD4D100C7457B = {
 			isa = PBXGroup;
 			children = (
+				66C0139F20519A3100F55E04 /* README.md */,
 				6647F980204CD4D100C7457B /* PsiCashLib */,
 				6647F98B204CD4D100C7457B /* PsiCashLibTests */,
 				6647F97F204CD4D100C7457B /* Products */,
@@ -91,6 +95,7 @@
 				6647F982204CD4D100C7457B /* Info.plist */,
 				66C0139B204D7B4C00F55E04 /* UserIdentity.m */,
 				66C0139D204D7B7000F55E04 /* UserIdentity.h */,
+				66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */,
 			);
 			path = PsiCashLib;
 			sourceTree = "<group>";
@@ -199,6 +204,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66C013A020519A3100F55E04 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

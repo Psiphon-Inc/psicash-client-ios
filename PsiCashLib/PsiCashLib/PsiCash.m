@@ -6,6 +6,7 @@
 #import "PsiCash.h"
 #import "NSError+NSErrorExt.h"
 #import "UserIdentity.h"
+#import "HTTPStatusCodes.h"
 
 /* TODO
  - Consider using NSUbiquitousKeyValueStore instead of NSUserDefaults for
@@ -26,9 +27,10 @@ NOTES
  - See the note at the bottom of this file about proxy support.
 */
 
-NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1:51337"; // TODO
-NSTimeInterval const TIMEOUT_SECS = 5.0; // TODO
+NSString * const PSICASH_SERVER_HOSTNAME = @"http://127.0.0.1:51337"; // TODO
+NSTimeInterval const TIMEOUT_SECS = 100.0; // TODO Probably longer than the server timeout.
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
+NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 @implementation PsiCash {
     UserIdentity *userID;
@@ -46,49 +48,67 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 
 #pragma mark - GetBalance
 
-- (void)getBalance:(void (^)(NSNumber* balance, BOOL isAccount, NSError *error))completionBlock
+- (void)getBalance:(void (^)(PsiCashRequestStatus status,
+                             NSNumber* balance,
+                             NSError *error))completionHandler
 {
-    NSMutableURLRequest *request = [PsiCash makeRequestFor:@"/balance" withMethod:@"GET" withAuthTokens:self->userID.authTokens];
+    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/balance"
+                                                  withMethod:@"GET"
+                                              withAuthTokens:self->userID.authTokens];
 
-    NSURLSession *session = [NSURLSession sharedSession];
+    [self doRequestWithRetry:request
+             numberOfRetries:REQUEST_RETRY_LIMIT
+           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error) {
 
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:
-                                  ^(NSData *data, NSURLResponse *response, NSError *error) {
-                                      if (error) {
-                                          error = [NSError errorWrapping:error withMessage:@"request failed" fromFunction:__FUNCTION__];
-                                          completionBlock(nil, false, error);
-                                          return;
-                                      }
-                                      else if (!data) {
-                                          error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                                          completionBlock(nil, false, error);
-                                          return;
-                                      } else {
-                                          NSNumber* balance;
-                                          BOOL isAccount;
-                                          NSError* error;
-                                          [PsiCash parseGetBalanceResponse:data balance:&balance isAccount:&isAccount withError:&error];
-                                          if (error != nil) {
-                                              error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                                              completionBlock(nil, false, error);
-                                              return;
-                                          }
+        if (error) {
+            error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
+            completionHandler(kInvalid, nil, error);
+            return;
+        }
 
-                                          self->userID.isAccount = isAccount;
+        if (response.statusCode == kHTTPStatusOK) {
+            if (!data) {
+                error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
+                completionHandler(kInvalid, nil, error);
+                return;
+            }
 
-                                          completionBlock(balance, isAccount, nil);
-                                          return;
-                                      }
-                                  }];
-    [task resume];
+           NSNumber* balance;
+           BOOL isAccount;
+           [PsiCash parseGetBalanceResponse:data balance:&balance isAccount:&isAccount withError:&error];
+           if (error != nil) {
+                error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
+                completionHandler(kInvalid, nil, error);
+                return;
+           }
+
+           self->userID.isAccount = isAccount;
+
+           completionHandler(kSuccess, balance, nil);
+           return;
+        }
+        else if (response.statusCode == kHTTPStatusUnauthorized) {
+            completionHandler(kInvalidTokens, nil, nil);
+            return;
+        }
+        else if (response.statusCode == kHTTPStatusInternalServerError) {
+            completionHandler(kServerError, nil, nil);
+            return;
+        }
+        else {
+            error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
+                                 fromFunction:__FUNCTION__];
+            completionHandler(kInvalid, nil, error);
+            return;
+        }
+    }];
 }
 
 + (void)parseGetBalanceResponse:(NSData*)jsonData balance:(NSNumber**)balance isAccount:(BOOL*)isAccount withError:(NSError**)error
 {
     *error = nil;
     *balance = 0;
-    *isAccount = false;
+    *isAccount = NO;
 
     id object = [NSJSONSerialization
                  JSONObjectWithData:jsonData
@@ -96,7 +116,7 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
                  error:error];
 
     if (*error) {
-        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization failed" fromFunction:__FUNCTION__];
+        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
         return;
     }
 
@@ -124,42 +144,63 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 
 #pragma mark - NewTracker
 
-- (void)newTracker:(void (^)(NSDictionary* authTokens, NSError *error))completionBlock
+/*!
+ Possible status codes:
+
+    • kSuccess
+
+    • kServerError
+
+ */
+- (void)newTracker:(void (^)(PsiCashRequestStatus status,
+                             NSDictionary* authTokens,
+                             NSError *error))completionHandler
 {
-    NSMutableURLRequest *request = [PsiCash makeRequestFor:@"/new-tracker" withMethod:@"POST" withAuthTokens:nil];
+    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/new-tracker"
+                                                  withMethod:@"POST"
+                                              withAuthTokens:nil];
 
-    NSURLSession *session = [NSURLSession sharedSession];
+    [self doRequestWithRetry:request
+             numberOfRetries:REQUEST_RETRY_LIMIT
+           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error) {
 
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:
-                                  ^(NSData *data, NSURLResponse *response, NSError *error) {
-                                      if (error) {
-                                          error = [NSError errorWrapping:error withMessage:@"request failed" fromFunction:__FUNCTION__];
-                                          completionBlock(nil, error);
-                                          return;
-                                      }
-                                      else if (!data) {
-                                          error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                                          completionBlock(nil, error);
-                                          return;
-                                      } else {
-                                          NSDictionary* authTokens;
-                                          NSError* error;
-                                          [PsiCash parseNewTrackerResponse:data authTokens:&authTokens withError:&error];
-                                          if (error != nil) {
-                                              error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                                              completionBlock(nil, error);
-                                              return;
-                                          }
+        if (error) {
+            error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
+            completionHandler(kInvalid, nil, error);
+            return;
+        }
 
-                                          [self->userID setAuthTokens:authTokens isAccount:false];
+        if (response.statusCode == kHTTPStatusOK) {
+            if (!data) {
+                error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
+                completionHandler(kInvalid, nil, error);
+                return;
+            }
 
-                                          completionBlock(authTokens, nil);
-                                          return;
-                                      }
-                                  }];
-    [task resume];
+            NSDictionary* authTokens;
+            [PsiCash parseNewTrackerResponse:data authTokens:&authTokens withError:&error];
+            if (error != nil) {
+                error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
+                completionHandler(kInvalid, nil, error);
+                return;
+            }
 
+            [self->userID setAuthTokens:authTokens isAccount:NO];
+
+            completionHandler(kSuccess, authTokens, nil);
+            return;
+        }
+        else if (response.statusCode == kHTTPStatusInternalServerError) {
+            completionHandler(kServerError, nil, nil);
+            return;
+        }
+        else {
+            error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
+                                 fromFunction:__FUNCTION__];
+            completionHandler(kInvalid, nil, error);
+            return;
+        }
+    }];
 }
 
 + (void)parseNewTrackerResponse:(NSData*)jsonData authTokens:(NSDictionary**)authTokens withError:(NSError**)error
@@ -173,7 +214,7 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
                  error:error];
 
     if (*error) {
-        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization failed" fromFunction:__FUNCTION__];
+        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
         return;
     }
 
@@ -213,43 +254,68 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 
 #pragma mark - ValidateTokens
 
-- (void)validateTokens:(void (^)(BOOL isAccount, NSDictionary* tokensValid, NSError *error))completionBlock
+/*!
+ Possible status codes:
+
+    • kSuccess
+
+    • kServerError
+ */
+- (void)validateTokens:(void (^)(PsiCashRequestStatus status,
+                                 BOOL isAccount,
+                                 NSDictionary* tokensValid,
+                                 NSError *error))completionHandler
 {
-    NSMutableURLRequest *request = [PsiCash makeRequestFor:@"/validate-tokens" withMethod:@"GET" withAuthTokens:self->userID.authTokens];
+    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/validate-tokens"
+                                                  withMethod:@"GET"
+                                              withAuthTokens:self->userID.authTokens];
 
-    NSURLSession *session = [NSURLSession sharedSession];
+    [self doRequestWithRetry:request
+             numberOfRetries:REQUEST_RETRY_LIMIT
+           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error) {
 
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:
-                                  ^(NSData *data, NSURLResponse *response, NSError *error) {
-                                      if (error) {
-                                          error = [NSError errorWrapping:error withMessage:@"request failed" fromFunction:__FUNCTION__];
-                                          completionBlock(false, nil, error);
-                                          return;
-                                      }
-                                      else if (!data) {
-                                          error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                                          completionBlock(false, nil, error);
-                                          return;
-                                      } else {
-                                          BOOL isAccount;
-                                          NSDictionary* tokensValid;
-                                          NSError* error;
-                                          [PsiCash parseValidateTokensResponse:data isAccount:&isAccount tokensValid:&tokensValid withError:&error];
-                                          if (error != nil) {
-                                              error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                                              completionBlock(false, nil, error);
-                                              return;
-                                          }
+       if (error) {
+           error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
+           completionHandler(kInvalid, NO, nil, error);
+           return;
+       }
 
-                                          self->userID.isAccount = isAccount;
+       if (response.statusCode == kHTTPStatusOK) {
+           if (!data) {
+               error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
+               completionHandler(kInvalid, NO, nil, error);
+               return;
+           }
 
-                                          completionBlock(isAccount, tokensValid, nil);
-                                          return;
-                                      }
-                                  }];
-    [task resume];
+           BOOL isAccount;
+           NSDictionary* tokensValid;
+           [PsiCash parseValidateTokensResponse:data
+                                      isAccount:&isAccount
+                                    tokensValid:&tokensValid
+                                      withError:&error];
+           if (error != nil) {
+               error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
+               completionHandler(kInvalid, NO, nil, error);
+               return;
+           }
 
+           self->userID.isAccount = isAccount;
+
+           completionHandler(kSuccess, isAccount, tokensValid, nil);
+           return;
+       }
+       else if (response.statusCode == kHTTPStatusInternalServerError) {
+           completionHandler(kServerError, NO, nil, nil);
+           return;
+       }
+       // We're not checking for a 400 error, since we're not going to give bad input.
+       else {
+           error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
+                                fromFunction:__FUNCTION__];
+           completionHandler(kInvalid, NO, nil, error);
+           return;
+       }
+    }];
 }
 
 + (void)parseValidateTokensResponse:(NSData*)jsonData isAccount:(BOOL*)isAccount tokensValid:(NSDictionary**)tokensValid withError:(NSError**)error
@@ -264,7 +330,7 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
                  error:error];
 
     if (*error) {
-        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization failed" fromFunction:__FUNCTION__];
+        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
         return;
     }
 
@@ -290,38 +356,56 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 
 #pragma mark - ValidateOrAcquireTokens
 
-- (void)validateOrAcquireTokens:(void (^)(NSArray *validTokenTypes, BOOL isAccount, NSError *error))completionBlock
+- (void)validateOrAcquireTokens:(void (^)(PsiCashRequestStatus status,
+                                          NSArray *validTokenTypes,
+                                          BOOL isAccount,
+                                          NSError *error))completionHandler
 {
     NSDictionary *authTokens = self->userID.authTokens;
     if (!authTokens || [authTokens count] == 0) {
         // No tokens. Get new Tracker tokens.
-        [self newTracker:^(NSDictionary *authTokens, NSError *error) {
+        [self newTracker:^(PsiCashRequestStatus status,
+                           NSDictionary *authTokens,
+                           NSError *error) {
             if (error) {
-                error = [NSError errorWrapping:error withMessage:@"newTracker request failed" fromFunction:__FUNCTION__];
-                completionBlock(nil, false, error);
+                error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
+                completionHandler(kInvalid, nil, NO, error);
                 return;
             }
 
-            [self->userID setAuthTokens:authTokens isAccount:false];
+            if (status != kSuccess) {
+                completionHandler(status, nil, NO, nil);
+                return;
+            }
 
-            completionBlock([authTokens allKeys], false, nil);
+            // newTracker calls [self->userID setAuthTokens]
+
+            completionHandler(kSuccess, [authTokens allKeys], NO, nil);
             return;
         }];
         return;
     }
 
     // Validate the tokens we have.
-    [self validateTokens:^(BOOL isAccount, NSDictionary *tokensValid, NSError *error) {
+    [self validateTokens:^(PsiCashRequestStatus status,
+                           BOOL isAccount,
+                           NSDictionary *tokensValid,
+                           NSError *error) {
         if (error) {
-            error = [NSError errorWrapping:error withMessage:@"validateTokens request failed" fromFunction:__FUNCTION__];
-            completionBlock(nil, false, error);
+            error = [NSError errorWrapping:error withMessage:@"validateTokens request error" fromFunction:__FUNCTION__];
+            completionHandler(kInvalid, nil, NO, error);
             return;
         }
 
-        // If none of the tokens is valid, then the validateTokens won't know if they
+        if (status != kSuccess) {
+            completionHandler(status, nil, NO, nil);
+            return;
+        }
+
+        // If none of the tokens are valid, then validateTokens won't know if they
         // belong to an account or not. In that case, we only have our previous
         // isAccount value to check.
-        isAccount |= self->userID.isAccount;
+        isAccount = self->userID.isAccount || isAccount;
 
         NSDictionary* onlyValidTokens = [PsiCash onlyValidTokens:self->userID.authTokens tokensValid:tokensValid];
 
@@ -330,39 +414,44 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
         // If the tokens are for an account, then there's nothing more to do
         // (unlike for a Tracker, we can't just get new ones).
         if (isAccount) {
-            completionBlock([onlyValidTokens allKeys], true, nil);
+            completionHandler(kSuccess, [onlyValidTokens allKeys], true, nil);
             return;
         }
 
         // If the tokens are for a Tracker, then if they're all expired we should
         // get new ones. (They should all expire at the same time.)
         if ([onlyValidTokens count] == 0) {
-            [self newTracker:^(NSDictionary *authTokens, NSError *error) {
+            [self newTracker:^(PsiCashRequestStatus status,
+                               NSDictionary *authTokens,
+                               NSError *error) {
                 if (error) {
-                    error = [NSError errorWrapping:error withMessage:@"newTracker request failed" fromFunction:__FUNCTION__];
-                    completionBlock(nil, false, error);
+                    error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
+                    completionHandler(kInvalid, nil, NO, error);
                     return;
                 }
 
-                [self->userID setAuthTokens:authTokens isAccount:false];
+                if (status != kSuccess) {
+                    completionHandler(status, nil, NO, nil);
+                    return;
+                }
 
-                completionBlock([authTokens allKeys], false, nil);
+                // newTracker calls [self->userID setAuthTokens]
+
+                completionHandler(kSuccess, [authTokens allKeys], NO, nil);
                 return;
             }];
             return;
         }
 
         // Otherwise we have valid Tracker tokens.
-        completionBlock([onlyValidTokens allKeys], false, nil);
+        completionHandler(kSuccess, [onlyValidTokens allKeys], NO, nil);
         return;
     }];
-
-    return;
 }
 
 #pragma mark - helpers
 
-+ (NSMutableURLRequest*)makeRequestFor:(NSString*)path withMethod:(NSString*)method withAuthTokens:(NSDictionary*)authTokens
++ (NSMutableURLRequest*)createRequestFor:(NSString*)path withMethod:(NSString*)method withAuthTokens:(NSDictionary*)authTokens
 {
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
     [request setCachePolicy:NSURLRequestUseProtocolCachePolicy];
@@ -370,7 +459,7 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 
     [request setHTTPMethod:method];
 
-    NSString* urlString = [NSString stringWithFormat:@"http://%@%@", PSICASH_SERVER_HOSTNAME, path];
+    NSString* urlString = [PSICASH_SERVER_HOSTNAME stringByAppendingString:path];
     [request setURL:[NSURL URLWithString:urlString]];
 
     if (authTokens != nil)
@@ -381,15 +470,72 @@ NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
     return request;
 }
 
+// If error is non-nil, data and response will be nil.
+- (void)doRequestWithRetry:(NSURLRequest*)request
+             numberOfRetries:(NSUInteger)numRetries // Set to REQUEST_RETRY_LIMIT on first call
+         completionHandler:(void (^)(NSData *data, NSHTTPURLResponse *response, NSError *error))completionHandler
+{
+    __weak typeof (self) weakSelf = self;
+
+    __block NSInteger remainingRetries = numRetries;
+
+    NSURLSessionConfiguration* config = NSURLSessionConfiguration.ephemeralSessionConfiguration.copy;
+    config.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
+    config.timeoutIntervalForRequest = TIMEOUT_SECS;
+
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
+
+    NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:request
+                                                completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error) {
+            // Don't retry in the case of an actual error.
+            completionHandler(nil, nil, error);
+            return;
+        }
+
+        NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
+        NSUInteger responseStatusCode = [httpResponse statusCode];
+
+        if (responseStatusCode >= 500 && remainingRetries > 0) {
+            // Server is having trouble. Retry.
+
+            remainingRetries -= 1;
+
+            // Back off per attempt.
+            dispatch_time_t retryTime = dispatch_time(DISPATCH_TIME_NOW, (REQUEST_RETRY_LIMIT-remainingRetries) * NSEC_PER_SEC);
+
+            NSLog(@"doRequestWithRetry: Waiting for retry; remainingRetries:%lu", (unsigned long)remainingRetries); // DEBUG
+
+            dispatch_after(retryTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^{
+                NSLog(@"doRequestWithRetry: Retrying"); // DEBUG
+
+                // Recursive retry.
+                [weakSelf doRequestWithRetry:request
+                             numberOfRetries:remainingRetries
+                           completionHandler:completionHandler];
+            });
+            return;
+        }
+        else {
+            // Success or no more retries available.
+            completionHandler(data, httpResponse, nil);
+            return;
+        }
+    }];
+
+    [dataTask resume];
+}
+
 + (NSDictionary*)onlyValidTokens:(NSDictionary*)authTokens tokensValid:(NSDictionary*)tokensValid
 {
     NSMutableDictionary* onlyValidTokens = [[NSMutableDictionary alloc] init];
 
-    for (id key in tokensValid) {
-        NSNumber* valid = [tokensValid objectForKey:key];
+    for (id tokenType in authTokens) {
+        NSString *token = [authTokens objectForKey:tokenType];
+        NSNumber *valid = [tokensValid objectForKey:token];
 
-        if (![valid boolValue]) {
-            onlyValidTokens[key] = authTokens[key];
+        if ([valid boolValue]) {
+            onlyValidTokens[tokenType] = token;
         }
     }
 

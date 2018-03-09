@@ -22,19 +22,26 @@ NSString * const ISACCOUNT_DEFAULTS_KEY = @"Psiphon-PsiCash-UserIdentity-IsAccou
 
 - (id)init
 {
-    self->_authTokens = [[NSUserDefaults standardUserDefaults] dictionaryForKey:TOKENS_DEFAULTS_KEY];
-    self->_isAccount = [[NSUserDefaults standardUserDefaults] integerForKey:ISACCOUNT_DEFAULTS_KEY];
+    [self setAuthTokens:[[NSUserDefaults standardUserDefaults] dictionaryForKey:TOKENS_DEFAULTS_KEY]
+              isAccount:[[NSUserDefaults standardUserDefaults] integerForKey:ISACCOUNT_DEFAULTS_KEY]];
+
     return self;
 }
 
 - (void)setAuthTokens:(NSDictionary *)authTokens isAccount:(BOOL)isAccount
 {
-    NSNumber *isAccountNum = [NSNumber numberWithBool:isAccount];
     @synchronized(self)
     {
+        // If these don't seem to be saving, remember that killing a debug run
+        // may prevent persistence.
         [[NSUserDefaults standardUserDefaults] setObject:authTokens forKey:TOKENS_DEFAULTS_KEY];
-        [[NSUserDefaults standardUserDefaults] setObject:isAccountNum forKey:ISACCOUNT_DEFAULTS_KEY];
+        [[NSUserDefaults standardUserDefaults] setInteger:isAccount forKey:ISACCOUNT_DEFAULTS_KEY];
         self->_authTokens = authTokens;
+        self->_isAccount = isAccount;
+
+#ifdef DEBUG
+        NSLog(@"PsiCashLib::authTokens:%@", self->_authTokens);
+#endif
     }
 }
 
@@ -52,10 +59,9 @@ NSString * const ISACCOUNT_DEFAULTS_KEY = @"Psiphon-PsiCash-UserIdentity-IsAccou
 
 - (void)setIsAccount:(BOOL)isAccount
 {
-    NSNumber *isAccountNum = [NSNumber numberWithBool:isAccount];
     @synchronized(self)
     {
-        [[NSUserDefaults standardUserDefaults] setObject:isAccountNum forKey:ISACCOUNT_DEFAULTS_KEY];
+        [[NSUserDefaults standardUserDefaults] setInteger:isAccount forKey:ISACCOUNT_DEFAULTS_KEY];
         self->_isAccount = isAccount;
     }
 }
