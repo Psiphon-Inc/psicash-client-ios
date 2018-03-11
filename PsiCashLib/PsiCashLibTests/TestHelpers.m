@@ -20,14 +20,14 @@
                                                       value:@TEST_CREDIT_TRANSACTION_CLASS]];
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"distinguisher"
                                                       value:@"1trillion-1second"]];
-    
-    NSMutableURLRequest *request = [psiCash createRequestFor:@"/new-transaction"
+
+    NSMutableURLRequest *request = [psiCash createRequestFor:@"/transaction"
                                                   withMethod:@"POST"
                                               withQueryItems:queryItems
                                            includeAuthTokens:YES];
-    
+
     NSURLSession *session = [NSURLSession sharedSession];
-    
+
     NSURLSessionDataTask *task = [session dataTaskWithRequest:request
                                             completionHandler:
                                   ^(NSData *data, NSURLResponse *response, NSError *error)
@@ -37,9 +37,9 @@
                                           completionHandler(NO);
                                           return;
                                       }
-                                      
+
                                       NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse*)response;
-                                      
+
                                       completionHandler(httpResponse.statusCode == kHTTPStatusOK);
                                   }];
     [task resume];

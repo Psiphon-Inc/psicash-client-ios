@@ -297,7 +297,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                              NSDictionary* authTokens,
                              NSError *error))completionHandler
 {
-    NSMutableURLRequest *request = [self createRequestFor:@"/new-tracker"
+    NSMutableURLRequest *request = [self createRequestFor:@"/tracker"
                                                withMethod:@"POST"
                                            withQueryItems:nil
                                         includeAuthTokens:NO];
@@ -620,7 +620,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"expectedAmount"
                                                       value:[NSString stringWithFormat:@"-%ld", expectedPrice.integerValue]]];
 
-    NSMutableURLRequest *request = [self createRequestFor:@"/new-transaction"
+    NSMutableURLRequest *request = [self createRequestFor:@"/transaction"
                                                withMethod:@"POST"
                                            withQueryItems:queryItems
                                         includeAuthTokens:YES];
@@ -921,17 +921,17 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 + (id)authTokensToHeader:(NSDictionary*)authTokens
 {
     NSMutableString *authTokensString = [NSMutableString string];
-    
+
     for (id key in authTokens) {
         id token = [authTokens objectForKey:key];
-        
+
         if ([authTokensString length] > 0) {
             [authTokensString appendString:@","];
         }
-        
+
         [authTokensString appendString:(NSString*)token];
     }
-    
+
     return authTokensString;
 }
 
