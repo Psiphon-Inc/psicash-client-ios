@@ -13,19 +13,19 @@
  cross-device synchronized storage. (Not using it for now because it introduces
  complexity.)
  - Have init() take a queue on which the completion calls should be made? (Like
-   PsiphonTunnel does.)
+ PsiphonTunnel does.)
  */
 
 /*
-NOTES
+ NOTES
  - Methods like getBalance are specifically not checking if authTokens have been
-   properly populated before trying to use them. We (probably?) don't want to call
-   the completion block on the queue that is calling our method, so we'll let the
-   request attempt go through and fail with "401 Authorization Required", at which
-   point the completion block will be called. This shouldn't happen anyway, as it
-   indicates an incorrect use of the library.
+ properly populated before trying to use them. We (probably?) don't want to call
+ the completion block on the queue that is calling our method, so we'll let the
+ request attempt go through and fail with "401 Authorization Required", at which
+ point the completion block will be called. This shouldn't happen anyway, as it
+ indicates an incorrect use of the library.
  - See the note at the bottom of this file about proxy support.
-*/
+ */
 
 NSString * const PSICASH_SERVER_SCHEME = @"http"; // @"https"; // TODO
 NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1"; // TODO
@@ -57,14 +57,13 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                      NSNumber*_Nullable balance,
                                      NSError*_Nullable error))completionHandler
 {
-    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/balance"
-                                                  withMethod:@"GET"
-                                              withQueryItems:nil
-                                              withAuthTokens:self->userID.authTokens];
+    NSMutableURLRequest *request = [self createRequestFor:@"/balance"
+                                               withMethod:@"GET"
+                                           withQueryItems:nil
+                                        includeAuthTokens:YES];
 
     [self doRequestWithRetry:request
                     useCache:NO
-             numberOfRetries:REQUEST_RETRY_LIMIT
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
      {
          if (error) {
@@ -163,14 +162,13 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
         [queryItems addObject:qi];
     }
 
-    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/purchase-prices"
-                                                  withMethod:@"GET"
-                                              withQueryItems:queryItems
-                                              withAuthTokens:self->userID.authTokens];
+    NSMutableURLRequest *request = [self createRequestFor:@"/purchase-prices"
+                                               withMethod:@"GET"
+                                           withQueryItems:queryItems
+                                        includeAuthTokens:YES];
 
     [self doRequestWithRetry:request
                     useCache:YES
-             numberOfRetries:REQUEST_RETRY_LIMIT
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
      {
          if (error) {
@@ -290,23 +288,22 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 /*!
  Possible status codes:
 
-    • kSuccess
+ • kSuccess
 
-    • kServerError
+ • kServerError
 
  */
 - (void)newTracker:(void (^)(PsiCashRequestStatus status,
                              NSDictionary* authTokens,
                              NSError *error))completionHandler
 {
-    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/new-tracker"
-                                                  withMethod:@"POST"
-                                              withQueryItems:nil
-                                              withAuthTokens:nil];
+    NSMutableURLRequest *request = [self createRequestFor:@"/new-tracker"
+                                               withMethod:@"POST"
+                                           withQueryItems:nil
+                                        includeAuthTokens:NO];
 
     [self doRequestWithRetry:request
                     useCache:NO
-             numberOfRetries:REQUEST_RETRY_LIMIT
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
      {
          if (error) {
@@ -403,23 +400,22 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 /*!
  Possible status codes:
 
-    • kSuccess
+ • kSuccess
 
-    • kServerError
+ • kServerError
  */
 - (void)validateTokens:(void (^)(PsiCashRequestStatus status,
                                  BOOL isAccount,
                                  NSDictionary* tokensValid,
                                  NSError *error))completionHandler
 {
-    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/validate-tokens"
-                                                  withMethod:@"GET"
-                                              withQueryItems:nil
-                                              withAuthTokens:self->userID.authTokens];
+    NSMutableURLRequest *request = [self createRequestFor:@"/validate-tokens"
+                                               withMethod:@"GET"
+                                           withQueryItems:nil
+                                        includeAuthTokens:YES];
 
     [self doRequestWithRetry:request
                     useCache:NO
-             numberOfRetries:REQUEST_RETRY_LIMIT
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
      {
          if (error) {
@@ -624,14 +620,13 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"expectedAmount"
                                                       value:[NSString stringWithFormat:@"-%ld", expectedPrice.integerValue]]];
 
-    NSMutableURLRequest *request = [PsiCash createRequestFor:@"/new-transaction"
-                                                  withMethod:@"POST"
-                                              withQueryItems:queryItems
-                                              withAuthTokens:self->userID.authTokens];
+    NSMutableURLRequest *request = [self createRequestFor:@"/new-transaction"
+                                               withMethod:@"POST"
+                                           withQueryItems:queryItems
+                                        includeAuthTokens:YES];
 
     [self doRequestWithRetry:request
                     useCache:NO
-             numberOfRetries:REQUEST_RETRY_LIMIT
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
      {
          if (error) {
@@ -685,6 +680,10 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
          }
          else if (response.statusCode == kHTTPStatusConflict) {
              completionHandler(kTransactionAmountMismatch, price, balance, nil, nil, nil);
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusNotFound) {
+             completionHandler(kTransactionTypeNotFound, nil, nil, nil, nil, nil);
              return;
          }
          else if (response.statusCode == kHTTPStatusUnauthorized) {
@@ -798,10 +797,10 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 #pragma mark - helpers
 
-+ (NSMutableURLRequest*)createRequestFor:(NSString*_Nonnull)path
-                              withMethod:(NSString*_Nonnull)method
-                          withQueryItems:(NSArray*_Nullable)queryItems
-                          withAuthTokens:(NSDictionary*_Nullable)authTokens
+- (NSMutableURLRequest*_Nonnull)createRequestFor:(NSString*_Nonnull)path
+                                      withMethod:(NSString*_Nonnull)method
+                                  withQueryItems:(NSArray*_Nullable)queryItems
+                               includeAuthTokens:(BOOL)includeAuthTokens
 {
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
     [request setCachePolicy:NSURLRequestUseProtocolCachePolicy];
@@ -818,19 +817,34 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
     [request setURL:urlComponents.URL];
 
-    if (authTokens != nil)
+    if (includeAuthTokens)
     {
-        [request setValue:[PsiCash authTokensToHeader:authTokens] forHTTPHeaderField:AUTH_HEADER];
+        [request setValue:[PsiCash authTokensToHeader:self->userID.authTokens]
+       forHTTPHeaderField:AUTH_HEADER];
     }
 
     return request;
 }
 
 // If error is non-nil, data and response will be nil.
-- (void)doRequestWithRetry:(NSURLRequest*)request
+- (void)doRequestWithRetry:(NSURLRequest*_Nonnull)request
                   useCache:(BOOL)useCache
-           numberOfRetries:(NSUInteger)numRetries // Set to REQUEST_RETRY_LIMIT on first call
-         completionHandler:(void (^)(NSData *data, NSHTTPURLResponse *response, NSError *error))completionHandler
+         completionHandler:(void (^_Nonnull)(NSData*_Nullable data,
+                                             NSHTTPURLResponse*_Nullable response,
+                                             NSError*_Nullable error))completionHandler
+{
+    [self doRequestWithRetryHelper:request
+                          useCache:useCache
+                   numberOfRetries:REQUEST_RETRY_LIMIT
+                 completionHandler:completionHandler];
+}
+
+- (void)doRequestWithRetryHelper:(NSURLRequest*_Nonnull)request
+                        useCache:(BOOL)useCache
+                 numberOfRetries:(NSUInteger)numRetries // Set to REQUEST_RETRY_LIMIT on first call
+               completionHandler:(void (^_Nonnull)(NSData*_Nullable data,
+                                                   NSHTTPURLResponse*_Nullable response,
+                                                   NSError*_Nullable error))completionHandler
 {
     __weak typeof (self) weakSelf = self;
 
@@ -847,43 +861,43 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
     NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:request
                                                 completionHandler:^(NSData *data, NSURLResponse *response, NSError *error)
-    {
-        if (error) {
-            // Don't retry in the case of an actual error.
-            completionHandler(nil, nil, error);
-            return;
-        }
+                                      {
+                                          if (error) {
+                                              // Don't retry in the case of an actual error.
+                                              completionHandler(nil, nil, error);
+                                              return;
+                                          }
 
-        NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
-        NSUInteger responseStatusCode = [httpResponse statusCode];
+                                          NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
+                                          NSUInteger responseStatusCode = [httpResponse statusCode];
 
-        if (responseStatusCode >= 500 && remainingRetries > 0) {
-            // Server is having trouble. Retry.
+                                          if (responseStatusCode >= 500 && remainingRetries > 0) {
+                                              // Server is having trouble. Retry.
 
-            remainingRetries -= 1;
+                                              remainingRetries -= 1;
 
-            // Back off per attempt.
-            dispatch_time_t retryTime = dispatch_time(DISPATCH_TIME_NOW, (REQUEST_RETRY_LIMIT-remainingRetries) * NSEC_PER_SEC);
+                                              // Back off per attempt.
+                                              dispatch_time_t retryTime = dispatch_time(DISPATCH_TIME_NOW, (REQUEST_RETRY_LIMIT-remainingRetries) * NSEC_PER_SEC);
 
-            NSLog(@"doRequestWithRetry: Waiting for retry; remainingRetries:%lu", (unsigned long)remainingRetries); // DEBUG
+                                              NSLog(@"doRequestWithRetry: Waiting for retry; remainingRetries:%lu", (unsigned long)remainingRetries); // DEBUG
 
-            dispatch_after(retryTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^{
-                NSLog(@"doRequestWithRetry: Retrying"); // DEBUG
+                                              dispatch_after(retryTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^{
+                                                  NSLog(@"doRequestWithRetry: Retrying"); // DEBUG
 
-                // Recursive retry.
-                [weakSelf doRequestWithRetry:request
-                                    useCache:useCache
-                             numberOfRetries:remainingRetries
-                           completionHandler:completionHandler];
-            });
-            return;
-        }
-        else {
-            // Success or no more retries available.
-            completionHandler(data, httpResponse, nil);
-            return;
-        }
-    }];
+                                                  // Recursive retry.
+                                                  [weakSelf doRequestWithRetryHelper:request
+                                                                            useCache:useCache
+                                                                     numberOfRetries:remainingRetries
+                                                                   completionHandler:completionHandler];
+                                              });
+                                              return;
+                                          }
+                                          else {
+                                              // Success or no more retries available.
+                                              completionHandler(data, httpResponse, nil);
+                                              return;
+                                          }
+                                      }];
 
     [dataTask resume];
 }

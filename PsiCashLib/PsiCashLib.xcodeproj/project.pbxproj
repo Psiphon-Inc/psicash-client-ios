@@ -17,6 +17,13 @@
 		66C0139C204D7B4C00F55E04 /* UserIdentity.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C0139B204D7B4C00F55E04 /* UserIdentity.m */; };
 		66C0139E204D7B7000F55E04 /* UserIdentity.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C0139D204D7B7000F55E04 /* UserIdentity.h */; };
 		66C013A020519A3100F55E04 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 66C0139F20519A3100F55E04 /* README.md */; };
+		66C013A620540BAD00F55E04 /* ValidateOrAcquireTokensTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013A520540BAD00F55E04 /* ValidateOrAcquireTokensTests.m */; };
+		66C013A82054103A00F55E04 /* GetPurchasePricesTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013A72054103A00F55E04 /* GetPurchasePricesTests.m */; };
+		66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		66C013AB205440B700F55E04 /* GetBalance.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013AA205440B700F55E04 /* GetBalance.m */; };
+		66C013AD2054415900F55E04 /* TestHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013AC2054415900F55E04 /* TestHelpers.m */; };
+		66C013B02054497B00F55E04 /* HTTPStatusCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013AF2054497B00F55E04 /* HTTPStatusCodes.m */; };
+		66C013B22054697200F55E04 /* NewTransaction.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013B12054697200F55E04 /* NewTransaction.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +51,14 @@
 		66C0139D204D7B7000F55E04 /* UserIdentity.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserIdentity.h; sourceTree = "<group>"; };
 		66C0139F20519A3100F55E04 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTTPStatusCodes.h; sourceTree = "<group>"; };
+		66C013A520540BAD00F55E04 /* ValidateOrAcquireTokensTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ValidateOrAcquireTokensTests.m; sourceTree = "<group>"; };
+		66C013A72054103A00F55E04 /* GetPurchasePricesTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GetPurchasePricesTests.m; sourceTree = "<group>"; };
+		66C013AA205440B700F55E04 /* GetBalance.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GetBalance.m; sourceTree = "<group>"; };
+		66C013AC2054415900F55E04 /* TestHelpers.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TestHelpers.m; sourceTree = "<group>"; };
+		66C013AE2054417000F55E04 /* TestHelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TestHelpers.h; sourceTree = "<group>"; };
+		66C013AF2054497B00F55E04 /* HTTPStatusCodes.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HTTPStatusCodes.m; sourceTree = "<group>"; };
+		66C013B12054697200F55E04 /* NewTransaction.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NewTransaction.m; sourceTree = "<group>"; };
+		66C013B320546ACC00F55E04 /* SecretTestValues.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SecretTestValues.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +111,7 @@
 				66C0139B204D7B4C00F55E04 /* UserIdentity.m */,
 				66C0139D204D7B7000F55E04 /* UserIdentity.h */,
 				66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */,
+				66C013AF2054497B00F55E04 /* HTTPStatusCodes.m */,
 			);
 			path = PsiCashLib;
 			sourceTree = "<group>";
@@ -105,6 +121,13 @@
 			children = (
 				6647F98C204CD4D100C7457B /* PsiCashLibTests.m */,
 				6647F98E204CD4D100C7457B /* Info.plist */,
+				66C013A520540BAD00F55E04 /* ValidateOrAcquireTokensTests.m */,
+				66C013A72054103A00F55E04 /* GetPurchasePricesTests.m */,
+				66C013AA205440B700F55E04 /* GetBalance.m */,
+				66C013AC2054415900F55E04 /* TestHelpers.m */,
+				66C013AE2054417000F55E04 /* TestHelpers.h */,
+				66C013B12054697200F55E04 /* NewTransaction.m */,
+				66C013B320546ACC00F55E04 /* SecretTestValues.h */,
 			);
 			path = PsiCashLibTests;
 			sourceTree = "<group>";
@@ -118,6 +141,7 @@
 			files = (
 				66C0139E204D7B7000F55E04 /* UserIdentity.h in Headers */,
 				6647F99D204CD53100C7457B /* NSError+NSErrorExt.h in Headers */,
+				66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */,
 				6647F99E204CD53100C7457B /* PsiCash.h in Headers */,
 				6647F98F204CD4D100C7457B /* PsiCashLib.h in Headers */,
 			);
@@ -224,6 +248,7 @@
 			files = (
 				6647F99C204CD53100C7457B /* PsiCash.m in Sources */,
 				6647F99F204CD53100C7457B /* NSError+NSErrorExt.m in Sources */,
+				66C013B02054497B00F55E04 /* HTTPStatusCodes.m in Sources */,
 				66C0139C204D7B4C00F55E04 /* UserIdentity.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -233,6 +258,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				6647F98D204CD4D100C7457B /* PsiCashLibTests.m in Sources */,
+				66C013AB205440B700F55E04 /* GetBalance.m in Sources */,
+				66C013A620540BAD00F55E04 /* ValidateOrAcquireTokensTests.m in Sources */,
+				66C013A82054103A00F55E04 /* GetPurchasePricesTests.m in Sources */,
+				66C013AD2054415900F55E04 /* TestHelpers.m in Sources */,
+				66C013B22054697200F55E04 /* NewTransaction.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
