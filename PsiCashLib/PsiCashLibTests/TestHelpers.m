@@ -10,6 +10,20 @@
 #import "TestHelpers.h"
 #import "SecretTestValues.h" // This file is in CipherShare
 
+
+// Expose some private methods to help with testing
+@interface PsiCash (Testing)
+- (NSMutableURLRequest*_Nonnull)createRequestFor:(NSString*_Nonnull)path
+                                      withMethod:(NSString*_Nonnull)method
+                                  withQueryItems:(NSArray*_Nullable)queryItems
+                               includeAuthTokens:(BOOL)includeAuthTokens;
+- (void)doRequestWithRetry:(NSURLRequest*_Nonnull)request
+                  useCache:(BOOL)useCache
+         completionHandler:(void (^_Nonnull)(NSData*_Nullable data,
+                                             NSHTTPURLResponse*_Nullable response,
+                                             NSError*_Nullable error))completionHandler;
+@end
+
 @implementation TestHelpers
 
 + (void)make1TRewardRequest:(PsiCash*_Nonnull)psiCash

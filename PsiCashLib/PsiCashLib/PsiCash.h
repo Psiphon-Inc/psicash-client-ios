@@ -151,20 +151,6 @@ typedef enum {
                                                                  NSString*_Nullable authorization,
                                                                  NSError*_Nullable error))completion;
 
-/*
- * TESTING ONLY HELPERS
- * If you think you need these, something is wrong.
- */
-- (NSMutableURLRequest*_Nonnull)createRequestFor:(NSString*_Nonnull)path
-                                      withMethod:(NSString*_Nonnull)method
-                                  withQueryItems:(NSArray*_Nullable)queryItems
-                               includeAuthTokens:(BOOL)includeAuthTokens;
-- (void)doRequestWithRetry:(NSURLRequest*_Nonnull)request
-                  useCache:(BOOL)useCache
-         completionHandler:(void (^_Nonnull)(NSData*_Nullable data,
-                                             NSHTTPURLResponse*_Nullable response,
-                                             NSError*_Nullable error))completionHandler;
-
 @end
 
 #endif /* PsiCash_h */
