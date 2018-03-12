@@ -12,8 +12,6 @@
  - Consider using NSUbiquitousKeyValueStore instead of NSUserDefaults for
  cross-device synchronized storage. (Not using it for now because it introduces
  complexity.)
- - Have init() take a queue on which the completion calls should be made? (Like
- PsiphonTunnel does.)
  */
 
 /*
@@ -40,12 +38,16 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 @implementation PsiCash {
     UserIdentity *userID;
+    dispatch_queue_t completionQueue;
 }
 
 # pragma mark - Init
 
 - (id)init
 {
+    self->completionQueue = dispatch_queue_create("com.psiphon3.PsiCashLib.CompletionQueue", DISPATCH_QUEUE_SERIAL);
+;
+
     // authTokens may still be nil if the value has never been stored.
     self->userID = [[UserIdentity alloc] init];
 
@@ -69,14 +71,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
              return;
          }
 
          if (response.statusCode == kHTTPStatusOK) {
              if (!data) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
                  return;
              }
 
@@ -85,27 +87,27 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              [PsiCash parseGetBalanceResponse:data balance:&balance isAccount:&isAccount withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
                  return;
              }
 
              self->userID.isAccount = isAccount;
 
-             completionHandler(kSuccess, balance, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess, balance, nil); });
              return;
          }
          else if (response.statusCode == kHTTPStatusUnauthorized) {
-             completionHandler(kInvalidTokens, nil, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalidTokens, nil, nil); });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
-             completionHandler(kServerError, nil, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, nil, nil); });
              return;
          }
          else {
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
              return;
          }
      }];
@@ -174,14 +176,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
              return;
          }
 
          if (response.statusCode == kHTTPStatusOK) {
              if (!data) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
                  return;
              }
 
@@ -189,25 +191,25 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              [PsiCash parseGetPurchasePricesResponse:data purchasePrices:&purchasePrices withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
                  return;
              }
 
-             completionHandler(kSuccess, purchasePrices, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess, purchasePrices, nil); });
              return;
          }
          else if (response.statusCode == kHTTPStatusUnauthorized) {
-             completionHandler(kInvalidTokens, nil, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalidTokens, nil, nil); });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
-             completionHandler(kServerError, nil, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, nil, nil); });
              return;
          }
          else {
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
              return;
          }
      }];
@@ -309,14 +311,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
              return;
          }
 
          if (response.statusCode == kHTTPStatusOK) {
              if (!data) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
                  return;
              }
 
@@ -324,23 +326,23 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              [PsiCash parseNewTrackerResponse:data authTokens:&authTokens withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
                  return;
              }
 
              [self->userID setAuthTokens:authTokens isAccount:NO];
 
-             completionHandler(kSuccess, authTokens, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess, authTokens, nil); });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
-             completionHandler(kServerError, nil, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, nil, nil); });
              return;
          }
          else {
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
              return;
          }
      }];
@@ -421,14 +423,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, NO, nil, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, NO, nil, error); });
              return;
          }
 
          if (response.statusCode == kHTTPStatusOK) {
              if (!data) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, NO, nil, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, NO, nil, error); });
                  return;
              }
 
@@ -440,24 +442,26 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                         withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, NO, nil, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, NO, nil, error); });
                  return;
              }
 
              self->userID.isAccount = isAccount;
 
-             completionHandler(kSuccess, isAccount, tokensValid, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kSuccess, isAccount, tokensValid, nil);
+             });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
-             completionHandler(kServerError, NO, nil, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, NO, nil, nil); });
              return;
          }
          // We're not checking for a 400 error, since we're not going to give bad input.
          else {
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, NO, nil, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, NO, nil, error); });
              return;
          }
      }];
@@ -516,18 +520,20 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
          {
              if (error) {
                  error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, NO, error);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, error); });
                  return;
              }
 
              if (status != kSuccess) {
-                 completionHandler(status, nil, NO, nil);
+                 dispatch_async(self->completionQueue, ^{ completionHandler(status, nil, NO, nil); });
                  return;
              }
 
              // newTracker calls [self->userID setAuthTokens]
 
-             completionHandler(kSuccess, [authTokens allKeys], NO, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kSuccess, [authTokens allKeys], NO, nil);
+             });
              return;
          }];
         return;
@@ -541,12 +547,12 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"validateTokens request error" fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, NO, error);
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, error); });
              return;
          }
 
          if (status != kSuccess) {
-             completionHandler(status, nil, NO, nil);
+             dispatch_async(self->completionQueue, ^{ completionHandler(status, nil, NO, nil); });
              return;
          }
 
@@ -562,7 +568,9 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
          // If the tokens are for an account, then there's nothing more to do
          // (unlike for a Tracker, we can't just get new ones).
          if (isAccount) {
-             completionHandler(kSuccess, [onlyValidTokens allKeys], true, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kSuccess, [onlyValidTokens allKeys], true, nil);
+             });
              return;
          }
 
@@ -575,25 +583,29 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
               {
                   if (error) {
                       error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
-                      completionHandler(kInvalid, nil, NO, error);
+                      dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, error); });
                       return;
                   }
 
                   if (status != kSuccess) {
-                      completionHandler(status, nil, NO, nil);
+                      dispatch_async(self->completionQueue, ^{ completionHandler(status, nil, NO, nil); });
                       return;
                   }
 
                   // newTracker calls [self->userID setAuthTokens]
 
-                  completionHandler(kSuccess, [authTokens allKeys], NO, nil);
+                  dispatch_async(self->completionQueue, ^{
+                      completionHandler(kSuccess, [authTokens allKeys], NO, nil);
+                  });
                   return;
               }];
              return;
          }
 
          // Otherwise we have valid Tracker tokens.
-         completionHandler(kSuccess, [onlyValidTokens allKeys], NO, nil);
+         dispatch_async(self->completionQueue, ^{
+             completionHandler(kSuccess, [onlyValidTokens allKeys], NO, nil);
+         });
          return;
      }];
 }
@@ -632,7 +644,9 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, nil, nil, nil, error);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kInvalid, nil, nil, nil, nil, error);
+             });
              return;
          }
 
@@ -646,7 +660,9 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              response.statusCode == kHTTPStatusConflict) {
              if (!data) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, nil, nil, nil, error);
+                 dispatch_async(self->completionQueue, ^{
+                     completionHandler(kInvalid, nil, nil, nil, nil, error);
+                 });
                  return;
              }
 
@@ -660,7 +676,9 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                         withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 completionHandler(kInvalid, nil, nil, nil, nil, error);
+                 dispatch_async(self->completionQueue, ^{
+                     completionHandler(kInvalid, nil, nil, nil, nil, error);
+                 });
                  return;
              }
 
@@ -668,37 +686,53 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
          }
 
          if (response.statusCode == kHTTPStatusOK) {
-             completionHandler(kSuccess, price, balance, expiry, authorization, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kSuccess, price, balance, expiry, authorization, nil);
+             });
              return;
          }
          else if (response.statusCode == kHTTPStatusTooManyRequests) {
-             completionHandler(kExistingTransaction, price, balance, expiry, nil, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kExistingTransaction, price, balance, expiry, nil, nil);
+             });
              return;
          }
          else if (response.statusCode == kHTTPStatusPaymentRequired) {
-             completionHandler(kInsufficientBalance, price, balance, nil, nil, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kInsufficientBalance, price, balance, nil, nil, nil);
+             });
              return;
          }
          else if (response.statusCode == kHTTPStatusConflict) {
-             completionHandler(kTransactionAmountMismatch, price, balance, nil, nil, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kTransactionAmountMismatch, price, balance, nil, nil, nil);
+             });
              return;
          }
          else if (response.statusCode == kHTTPStatusNotFound) {
-             completionHandler(kTransactionTypeNotFound, nil, nil, nil, nil, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kTransactionTypeNotFound, nil, nil, nil, nil, nil);
+             });
              return;
          }
          else if (response.statusCode == kHTTPStatusUnauthorized) {
-             completionHandler(kInvalidTokens, nil, nil, nil, nil, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kInvalidTokens, nil, nil, nil, nil, nil);
+             });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
-             completionHandler(kServerError, nil, nil, nil, nil, nil);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kServerError, nil, nil, nil, nil, nil);
+             });
              return;
          }
          else {
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
-             completionHandler(kInvalid, nil, nil, nil, nil, error);
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kInvalid, nil, nil, nil, nil, error);
+             });
              return;
          }
      }];
@@ -865,7 +899,9 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                       {
                                           if (error) {
                                               // Don't retry in the case of an actual error.
-                                              completionHandler(nil, nil, error);
+                                              dispatch_async(self->completionQueue, ^{
+                                                  completionHandler(nil, nil, error);
+                                              });
                                               return;
                                           }
 
@@ -895,7 +931,9 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                           }
                                           else {
                                               // Success or no more retries available.
-                                              completionHandler(data, httpResponse, nil);
+                                              dispatch_async(self->completionQueue, ^{
+                                                  completionHandler(data, httpResponse, nil);
+                                              });
                                               return;
                                           }
                                       }];

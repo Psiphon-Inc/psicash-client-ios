@@ -27,6 +27,10 @@ typedef enum {
 @property NSString*_Nonnull transactionClass;
 @end
 
+// NOTE: All completion handlers will be called on a single serial dispatch queue.
+// They will be made asynchronously unless otherwise noted.
+// (If it would be better for the library consumer to provide the queue, we can
+// change the interface to do that.)
 
 @interface PsiCash : NSObject
 
