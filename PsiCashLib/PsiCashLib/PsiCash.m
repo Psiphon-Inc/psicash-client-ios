@@ -30,7 +30,8 @@
 NSString * const PSICASH_SERVER_SCHEME = @"http"; // @"https"; // TODO
 NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1"; // TODO
 int const PSICASH_SERVER_PORT = 51337; // 443; // TODO
-NSTimeInterval const TIMEOUT_SECS = 100.0; // TODO Probably longer than the server timeout.
+NSString * const PSICASH_API_VERSION_PATH = @"/v1";
+NSTimeInterval const TIMEOUT_SECS = 10.0;
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
@@ -812,7 +813,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     urlComponents.scheme = PSICASH_SERVER_SCHEME;
     urlComponents.host = PSICASH_SERVER_HOSTNAME;
     urlComponents.port = [[NSNumber alloc] initWithInt:PSICASH_SERVER_PORT];
-    urlComponents.path = path;
+    urlComponents.path = [PSICASH_API_VERSION_PATH stringByAppendingString:path];
     urlComponents.queryItems = queryItems;
 
     [request setURL:urlComponents.URL];
