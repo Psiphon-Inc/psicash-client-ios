@@ -25,9 +25,9 @@
  - See the note at the bottom of this file about proxy support.
  */
 
-NSString * const PSICASH_SERVER_SCHEME = @"http"; // @"https"; // TODO
-NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1"; // TODO
-int const PSICASH_SERVER_PORT = 51337; // 443; // TODO
+NSString * const PSICASH_SERVER_SCHEME = @"http"; // @"https"; // TODO: https
+NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1"; // TODO: real hostname
+int const PSICASH_SERVER_PORT = 51337; // 443; // TODO: 443
 NSString * const PSICASH_API_VERSION_PATH = @"/v1";
 NSTimeInterval const TIMEOUT_SECS = 10.0;
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
