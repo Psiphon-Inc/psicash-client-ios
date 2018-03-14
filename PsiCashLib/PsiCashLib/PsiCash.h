@@ -155,6 +155,15 @@ typedef enum {
                                                                  NSString*_Nullable authorization,
                                                                  NSError*_Nullable error))completion;
 
+- (void)refreshState:(NSArray*_Nonnull)purchaseClasses
+      withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                       NSArray*_Nullable validTokenTypes,
+                                       BOOL isAccount,
+                                       NSNumber*_Nullable balance,
+                                       NSArray*_Nullable purchasePrices,
+                                       NSError*_Nullable error))completionHandler;
+
+
 @end
 
 #endif /* PsiCash_h */
