@@ -31,6 +31,7 @@ int const PSICASH_SERVER_PORT = 51337; // 443; // TODO: 443
 NSString * const PSICASH_API_VERSION_PATH = @"/v1";
 NSTimeInterval const TIMEOUT_SECS = 10.0;
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
+NSString * const PSICASH_USER_AGENT = @"Psiphon-PsiCash-iOS";
 NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 @implementation PsiCashPurchasePrice
@@ -851,6 +852,8 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     urlComponents.queryItems = queryItems;
 
     [request setURL:urlComponents.URL];
+
+    [request setValue:PSICASH_USER_AGENT forHTTPHeaderField:@"User-Agent"];
 
     if (includeAuthTokens)
     {
