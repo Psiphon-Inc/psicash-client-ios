@@ -28,6 +28,15 @@ NSString * const ISACCOUNT_DEFAULTS_KEY = @"Psiphon-PsiCash-UserIdentity-IsAccou
     return self;
 }
 
+- (void)clear
+{
+    @synchronized(self)
+    {
+        NSDictionary *emptyAuthTokens = [[NSDictionary alloc] init];
+        [self setAuthTokens:emptyAuthTokens isAccount:NO];
+    }
+}
+
 - (void)setAuthTokens:(NSDictionary *)authTokens isAccount:(BOOL)isAccount
 {
     @synchronized(self)

@@ -8,8 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "TestHelpers.h"
-#import "SecretTestValues.h" // This file is in CipherShare
-
+#import "UserIdentity.h"
 
 // Expose some private methods to help with testing
 @interface PsiCash (Testing)
@@ -17,14 +16,27 @@
                                       withMethod:(NSString*_Nonnull)method
                                   withQueryItems:(NSArray*_Nullable)queryItems
                                includeAuthTokens:(BOOL)includeAuthTokens;
+
 - (void)doRequestWithRetry:(NSURLRequest*_Nonnull)request
                   useCache:(BOOL)useCache
          completionHandler:(void (^_Nonnull)(NSData*_Nullable data,
                                              NSHTTPURLResponse*_Nullable response,
                                              NSError*_Nullable error))completionHandler;
+
+- (void)clearUserID;
 @end
 
 @implementation TestHelpers
+
++ (void)clearUserID:(PsiCash*_Nonnull)psiCash
+{
+    [[psiCash valueForKey:@"userID"] clear];
+}
+
++ (void)setIsAccount:(PsiCash*_Nonnull)psiCash
+{
+    [[psiCash valueForKey:@"userID"] setIsAccount:YES];
+}
 
 + (void)make1TRewardRequest:(PsiCash*_Nonnull)psiCash
                  completion:(void (^_Nonnull)(BOOL success))completionHandler
@@ -58,7 +70,6 @@
                                   }];
     [task resume];
 }
-
 
 @end
 

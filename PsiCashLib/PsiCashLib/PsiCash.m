@@ -160,7 +160,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                                       NSArray*_Nullable purchasePrices,
                                                       NSError*_Nullable error))completionHandler
 {
-    NSMutableArray *queryItems = [NSMutableArray new];
+    NSMutableArray *queryItems = [[NSMutableArray alloc] init];
     for (NSString *val in classes) {
         NSURLQueryItem *qi = [NSURLQueryItem queryItemWithName:@"class" value:val];
         [queryItems addObject:qi];
@@ -624,7 +624,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                                                  NSString*_Nullable authorization,
                                                                  NSError*_Nullable error))completionHandler
 {
-    NSMutableArray *queryItems = [NSMutableArray new];
+    NSMutableArray *queryItems = [[NSMutableArray alloc] init];
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"class"
                                                       value:transactionClass]];
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"distinguisher"
@@ -831,6 +831,312 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 }
 
 
+#pragma mark - RefreshState
+
+- (void)refreshState:(NSArray*_Nonnull)purchaseClasses
+      withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                       NSArray*_Nullable validTokenTypes,
+                                       BOOL isAccount,
+                                       NSNumber*_Nullable balance,
+                                       NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
+                                       NSError*_Nullable error))completionHandler
+{
+    // Call the helper, indicating that it can do one level of recursion.
+    [self refreshStateHelper:purchaseClasses
+              allowRecursion:YES
+              withCompletion:completionHandler];
+}
+
+// allowRecursion must be set to YES when called by refreshState and when this
+// this method is entered with tokens in hand. This prevents infinite recursion.
+- (void)refreshStateHelper:(NSArray*_Nonnull)purchaseClasses
+            allowRecursion:(BOOL)allowRecursion
+            withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                             NSArray*_Nullable validTokenTypes,
+                                             BOOL isAccount,
+                                             NSNumber*_Nullable balance,
+                                             NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
+                                             NSError*_Nullable error))completionHandler
+{
+    /*
+     Logic flow overview:
+
+     1. If there are no tokens:
+        a. If isAccount then return. The user needs to log in immediately.
+        b. If !isAccount then call NewTracker to get new tracker tokens.
+     2. Make the RefreshClientState request.
+     3. If isAccount then return. (Even if there are no valid tokens.)
+     4. If there are valid (tracker) tokens then return.
+     5. If there are no valid tokens call NewTracker. Call RefreshClientState again.
+     6. If there are still no valid tokens, then things are horribly wrong. Return error.
+     */
+
+    NSDictionary *authTokens = self->userID.authTokens;
+    if (!authTokens || [authTokens count] == 0) {
+        // No tokens.
+
+        if (self->userID.isAccount) {
+            // This is/was a logged-in account. We can't just get a new tracker.
+            // The app will have to force a login for the user to do anything.
+            NSArray *validTokenTypes = [[NSArray alloc] init]; // empty array
+            dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess, validTokenTypes, YES, nil, nil, nil); });
+            return;
+        }
+
+        if (!allowRecursion) {
+            // We have already recursed and can't do it again. This is an error condition.
+            NSError *error = [NSError errorWithMessage:@"failed to obtain valid tracker tokens (a)" fromFunction:__FUNCTION__];
+            dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+            return;
+        }
+
+        // Get new tracker tokens. (Which is effectively getting a new identity.)
+        [self newTracker:^(PsiCashRequestStatus status,
+                           NSDictionary *authTokens,
+                           NSError *error)
+         {
+             if (error) {
+                 error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 return;
+             }
+
+             if (status != kSuccess) {
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 return;
+             }
+
+             // newTracker calls [self->userID setAuthTokens]
+
+             // Recursive refreshState call now that we have tokens.
+             [self refreshStateHelper:purchaseClasses
+                       allowRecursion:NO
+                       withCompletion:completionHandler];
+             return;
+         }];
+
+        return;
+    }
+
+    // We have tokens. Make the RefreshClientState request.
+
+    NSMutableArray *queryItems = [[NSMutableArray alloc] init];
+    for (NSString *val in purchaseClasses) {
+        NSURLQueryItem *qi = [NSURLQueryItem queryItemWithName:@"class" value:val];
+        [queryItems addObject:qi];
+    }
+
+    NSMutableURLRequest *request = [self createRequestFor:@"/refresh-state"
+                                               withMethod:@"GET"
+                                           withQueryItems:queryItems
+                                        includeAuthTokens:YES];
+
+    [self doRequestWithRetry:request
+                    useCache:NO
+           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
+     {
+         if (error) {
+             error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+             return;
+         }
+
+         if (response.statusCode == kHTTPStatusOK) {
+             if (!data) {
+                 error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 return;
+             }
+
+             NSNumber *balance;
+             BOOL isAccount;
+             NSDictionary *tokensValid;
+             NSArray *purchasePrices;
+             [PsiCash parseRefreshStateResponse:data
+                                    tokensValid:&tokensValid
+                                      isAccount:&isAccount
+                                        balance:&balance
+                                 purchasePrices:&purchasePrices
+                                      withError:&error];
+             if (error != nil) {
+                 error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 return;
+             }
+
+             // NOTE: Even though there's no error, there could still be no valid tokens,
+             // no balance or is-account, and no purchase prices.
+
+             NSDictionary* onlyValidTokens = [PsiCash onlyValidTokens:self->userID.authTokens tokensValid:tokensValid];
+
+             // If any of our tokens were valid, then the isAccount value from the
+             // server is authoritative. Otherwise we'll respect our existing value.
+             if (onlyValidTokens.count == 0) {
+                 isAccount = self->userID.isAccount;
+             }
+
+             // If we have moved from being an account to not being an account,
+             // something is very wrong.
+             if (self->userID.isAccount && !isAccount) {
+                 error = [NSError errorWithMessage:@"invalid is-account state" fromFunction:__FUNCTION__];
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 return;
+             }
+
+             [self->userID setAuthTokens:onlyValidTokens isAccount:isAccount];
+
+             if (self->userID.isAccount) {
+                 // For accounts there's nothing else we can do, regardless of the state of token validity.
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess,
+                                                                            [onlyValidTokens allKeys],
+                                                                            self->userID.isAccount,
+                                                                            balance,
+                                                                            purchasePrices,
+                                                                            nil); });
+                 return;
+             }
+
+             if (onlyValidTokens.count > 0) {
+                 // We have a good tracker state.
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess,
+                                                                            [onlyValidTokens allKeys],
+                                                                            self->userID.isAccount,
+                                                                            balance,
+                                                                            purchasePrices,
+                                                                            nil); });
+                 return;
+             }
+
+             // We started out with tracker tokens, but they're all invalid.
+
+             if (!allowRecursion) {
+                 // No further recursion is allowed, so there's nothing more we can do.
+                 NSError *error = [NSError errorWithMessage:@"failed to obtain valid tracker tokens (b)" fromFunction:__FUNCTION__];
+                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 return;
+             }
+
+             // Start the call all over, which will begin with NewTracker.
+
+             // We have no tokens, so allow recusion in order for the
+             // NewTracker+RefreshClientState to occur.
+             [self refreshStateHelper:purchaseClasses
+                       allowRecursion:YES
+                       withCompletion:completionHandler];
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusUnauthorized) {
+             // This can only happen if the tokens we sent didn't all belong to
+             // same user. This really should never happen.
+             [self->userID clear];
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalidTokens, nil, NO, nil, nil, nil); });
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusInternalServerError) {
+             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, nil, NO, nil, nil, nil); });
+             return;
+         }
+         else {
+             // This could happen on a kHTTPStatusBadRequest, which means we sent bad data.
+             // Shouldn't happen.
+             error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
+                                  fromFunction:__FUNCTION__];
+             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+             return;
+         }
+     }];
+}
+
++ (void)parseRefreshStateResponse:(NSData*_Nonnull)jsonData
+                      tokensValid:(NSDictionary**_Nonnull)tokensValid
+                        isAccount:(BOOL*_Nonnull)isAccount
+                          balance:(NSNumber**_Nonnull)balance
+                   purchasePrices:(NSArray**_Nonnull)purchasePrices
+                        withError:(NSError**_Nonnull)error
+{
+    *error = nil;
+    *tokensValid = nil;
+    *isAccount = NO;
+    *balance = nil;
+    *purchasePrices = nil;
+
+    id object = [NSJSONSerialization
+                 JSONObjectWithData:jsonData
+                 options:0
+                 error:error];
+
+    if (*error) {
+        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
+        return;
+    }
+
+    if (![object isKindOfClass:[NSDictionary class]]) {
+        *error = [NSError errorWithMessage:@"Invalid JSON structure" fromFunction:__FUNCTION__];
+        return;
+    }
+
+    NSDictionary* data = object;
+
+    // Note: isKindOfClass is false if the key isn't found
+
+    if (![data[@"Balance"] isKindOfClass:NSNumber.class]) {
+        *error = [NSError errorWithMessage:@"Balance is not a number" fromFunction:__FUNCTION__];
+        return;
+    }
+    *balance = data[@"Balance"];
+
+    if (![data[@"IsAccount"] isKindOfClass:NSNumber.class]) {
+        *error = [NSError errorWithMessage:@"IsAccount is not a number" fromFunction:__FUNCTION__];
+        return;
+    }
+    *isAccount = [(NSNumber*)data[@"IsAccount"] boolValue];
+
+    if (![data[@"TokensValid"] isKindOfClass:NSDictionary.class]) {
+        *error = [NSError errorWithMessage:@"TokensValid is not a dictionary" fromFunction:__FUNCTION__];
+        return;
+    }
+    *tokensValid = data[@"TokensValid"];
+
+    if (![data[@"PurchasePrices"] isKindOfClass:NSArray.class]) {
+        *error = [NSError errorWithMessage:@"PurchasePrices is not an array" fromFunction:__FUNCTION__];
+        return;
+    }
+
+    NSArray *jsonPPs = data[@"PurchasePrices"];
+    NSMutableArray *pps = [NSMutableArray arrayWithCapacity:jsonPPs.count];
+    for (id jpp in jsonPPs) {
+        if (![jpp isKindOfClass:NSDictionary.class]) {
+            *error = [NSError errorWithMessage:@"PurchasePrices item is not a dictionary" fromFunction:__FUNCTION__];
+            return;
+        }
+
+        PsiCashPurchasePrice *pp = [[PsiCashPurchasePrice alloc] init];
+
+        if (![jpp[@"Class"] isKindOfClass:NSString.class]) {
+            *error = [NSError errorWithMessage:@"Class is not a string" fromFunction:__FUNCTION__];
+            return;
+        }
+        pp.transactionClass = jpp[@"Class"];
+
+        if (![jpp[@"Distinguisher"] isKindOfClass:NSString.class]) {
+            *error = [NSError errorWithMessage:@"Distinguisher is not a string" fromFunction:__FUNCTION__];
+            return;
+        }
+        pp.distinguisher = jpp[@"Distinguisher"];
+
+        if (![jpp[@"Price"] isKindOfClass:NSNumber.class]) {
+            *error = [NSError errorWithMessage:@"Price is not a number" fromFunction:__FUNCTION__];
+            return;
+        }
+        pp.price = jpp[@"Price"];
+
+        [pps addObject:pp];
+    }
+
+    *purchasePrices = pps;
+}
+
+
 #pragma mark - helpers
 
 - (NSMutableURLRequest*_Nonnull)createRequestFor:(NSString*_Nonnull)path
@@ -844,7 +1150,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
     [request setHTTPMethod:method];
 
-    NSURLComponents *urlComponents = [NSURLComponents new];
+    NSURLComponents *urlComponents = [[NSURLComponents alloc] init];
     urlComponents.scheme = PSICASH_SERVER_SCHEME;
     urlComponents.host = PSICASH_SERVER_HOSTNAME;
     urlComponents.port = [[NSNumber alloc] initWithInt:PSICASH_SERVER_PORT];
