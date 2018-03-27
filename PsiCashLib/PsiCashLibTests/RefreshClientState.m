@@ -54,7 +54,7 @@
          XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
 
          XCTAssertNotNil(balance);
-         XCTAssertEqual([balance integerValue], 0);
+         XCTAssertEqual(balance.integerValue, 0);
 
          XCTAssertNotNil(purchasePrices);
          XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
@@ -89,7 +89,7 @@
          XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
 
          XCTAssertNotNil(balance);
-         XCTAssertGreaterThanOrEqual([balance integerValue], 0);
+         XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
 
          XCTAssertNotNil(purchasePrices);
          XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
@@ -111,7 +111,7 @@
               XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
 
               XCTAssertNotNil(balance);
-              XCTAssertGreaterThanOrEqual([balance integerValue], 0);
+              XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
 
               XCTAssertNotNil(purchasePrices);
               XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
@@ -145,7 +145,7 @@
          XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
 
          XCTAssertNotNil(balance);
-         XCTAssertGreaterThanOrEqual([balance integerValue], 0);
+         XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
 
          XCTAssertNotNil(purchasePrices);
          XCTAssertEqual(purchasePrices.count, 0);
@@ -178,7 +178,7 @@
          XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
 
          XCTAssertNotNil(balance);
-         XCTAssertGreaterThanOrEqual([balance integerValue], 0);
+         XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
 
          XCTAssertNotNil(purchasePrices);
          XCTAssertGreaterThanOrEqual(purchasePrices.count, 3);
@@ -211,7 +211,7 @@
          XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
 
          XCTAssertNotNil(originalBalance);
-         XCTAssertGreaterThanOrEqual([originalBalance integerValue], 0);
+         XCTAssertGreaterThanOrEqual(originalBalance.integerValue, 0);
 
          XCTAssertNotNil(purchasePrices);
          XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);

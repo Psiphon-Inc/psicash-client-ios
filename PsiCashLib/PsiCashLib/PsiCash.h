@@ -38,38 +38,26 @@ typedef enum {
 
 
 /*!
- If no existing tokens are stored locally, new ones will be acquired. Otherwise,
- the existing tokens will be validated.
+ Refreshes the client state. Retrieves info about whether the user has an
+ account (vs tracker), balance, valid token types. It also retrieves purchase
+ prices, as specified by the purchaseClasses param.
 
- NOTE: If the current user has an account, then it is possible that not all
- expected tokens will be returned valid. Login may be necessary before spending,
- etc. (It's even possible that validTokenTypes is empty -- i.e., there are no
- valid tokens.)
+ If there are no tokens stored locally (e.g., if this is the first run), then new
+ tracker tokens will obtained.
+
+ If isAccount is true, then it is possible that not all expected tokens will be
+ returned valid (they expire at different rates). Login may be necessary
+ before spending, etc. (It's even possible that validTokenTypes is empty --
+ i.e., there are no valid tokens.)
+
+ If there is no valid indicator token, then balance and purchasePrices will be nil.
 
  If error is non-nil, the request failed utterly and no other params are valid.
 
- validTokenTypes will contain the available valid token types, like
+ validTokenTypes will contain the available valid token types, like:
  @code ["earner", "indicator", "spender"] @endcode
 
  isAccount will be true if the tokens belong to an Account or false if a Tracker.
-
- Possible status codes:
-
- • kSuccess
-
- • kServerError
- */
-- (void)validateOrAcquireTokens:(void (^_Nonnull)(PsiCashRequestStatus status,
-                                                  NSArray*_Nullable validTokenTypes,
-                                                  BOOL isAccount,
-                                                  NSError*_Nullable error))completionHandler;
-
-
-/*!
- Retrieves purchase prices from the server. The set of purchase prices retrieved
- will be determined by the transaction classes provided.
-
- If error is non-nil, the request failed utterly and no other params are valid.
 
  purchasePrices is an array of PsiCashPurchasePrice objects. May be emtpy if no
  transaction types of the given class(es) are found.
@@ -78,33 +66,20 @@ typedef enum {
 
  • kSuccess
 
- • kInvalidTokens: TODO: Figure out how to handle this.
-
  • kServerError
 
+ • kInvalid: error will be non-nil.
+
+ • kInvalidTokens: Should never happen. The local user ID will be cleared.
+
  */
-- (void)getPurchasePricesForClasses:(NSArray*_Nonnull)classes
-                  completionHandler:(void (^_Nonnull)(PsiCashRequestStatus status,
-                                                      NSArray*_Nullable purchasePrices,
-                                                      NSError*_Nullable error))completionHandler;
-
-
-/*!
- Retrieves the user's balance.
-
- If error is non-nil, the request failed utterly and no other params are valid.
-
- Possible status codes:
-
- • kSuccess
-
- • kInvalidTokens: TODO: Figure out how to handle this.
-
- • kServerError
- */
-- (void)getBalance:(void (^_Nonnull)(PsiCashRequestStatus status,
-                                     NSNumber*_Nullable balance,
-                                     NSError*_Nullable error))completionHandler;
+- (void)refreshState:(NSArray*_Nonnull)purchaseClasses
+      withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                       NSArray*_Nullable validTokenTypes,
+                                       BOOL isAccount,
+                                       NSNumber*_Nullable balance,
+                                       NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
+                                       NSError*_Nullable error))completionHandler;
 
 
 /*!
@@ -159,50 +134,6 @@ typedef enum {
                                                                  NSDate*_Nullable expiry,
                                                                  NSString*_Nullable authorization,
                                                                  NSError*_Nullable error))completion;
-
-/*!
- Refreshes the client state. Retrieves info about whether the user has an
- account (vs tracker), balance, valid token types. It also retrieves purchase
- prices, as specified by the purchaseClasses param.
-
- If there are no tokens stored locally (e.g., if this is the first run), then new
- tracker tokens will obtained.
-
- If isAccount is true, then it is possible that not all expected tokens will be
- returned valid (they expire at different rates). Login may be necessary
- before spending, etc. (It's even possible that validTokenTypes is empty --
- i.e., there are no valid tokens.)
-
- If there is no valid indicator token, then balance and purchasePrices will be nil.
-
- If error is non-nil, the request failed utterly and no other params are valid.
-
- validTokenTypes will contain the available valid token types, like:
-   @code ["earner", "indicator", "spender"] @endcode
-
- isAccount will be true if the tokens belong to an Account or false if a Tracker.
-
- purchasePrices is an array of PsiCashPurchasePrice objects. May be emtpy if no
- transaction types of the given class(es) are found.
-
- Possible status codes:
-
- • kSuccess
-
- • kServerError
-
- • kInvalid: error will be non-nil.
-
- • kInvalidTokens: Should never happen. The local user ID will be cleared.
-
- */
-- (void)refreshState:(NSArray*_Nonnull)purchaseClasses
-      withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
-                                       NSArray*_Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber*_Nullable balance,
-                                       NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
-                                       NSError*_Nullable error))completionHandler;
 
 @end
 

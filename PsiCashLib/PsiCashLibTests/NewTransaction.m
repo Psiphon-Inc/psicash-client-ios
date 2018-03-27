@@ -26,17 +26,19 @@
     psiCash = [[PsiCash alloc] init];
     
     XCTestExpectation *exp = [self expectationWithDescription:@"Init tokens"];
-    
-    [psiCash validateOrAcquireTokens:^(PsiCashRequestStatus status,
-                                       NSArray *validTokenTypes,
-                                       BOOL isAccount,
-                                       NSError *error) {
+
+    [psiCash refreshState:@[] withCompletion:^(PsiCashRequestStatus status,
+                                               NSArray * _Nullable validTokenTypes,
+                                               BOOL isAccount,
+                                               NSNumber * _Nullable balance,
+                                               NSArray * _Nullable purchasePrices,
+                                               NSError * _Nullable error) {
         XCTAssertNil(error);
         XCTAssertEqual(status, kSuccess);
-        
+
         [exp fulfill];
     }];
-    
+
     [self waitForExpectationsWithTimeout:5 handler:nil];
 }
 
@@ -55,9 +57,12 @@
          XCTAssert(success);
          
          // Check our balance to compare against later.
-         [psiCash getBalance:^(PsiCashRequestStatus status,
-                               NSNumber* prePurchaseBalance,
-                               NSError *error) {
+         [psiCash refreshState:@[] withCompletion:^(PsiCashRequestStatus status,
+                                                    NSArray * _Nullable validTokenTypes,
+                                                    BOOL isAccount,
+                                                    NSNumber * _Nullable prePurchaseBalance,
+                                                    NSArray * _Nullable purchasePrices,
+                                                    NSError * _Nullable error) {
              XCTAssertNil(error);
              XCTAssertEqual(status, kSuccess);
              XCTAssertGreaterThanOrEqual(prePurchaseBalance.integerValue, ONE_TRILLION);
@@ -99,9 +104,12 @@
     XCTestExpectation *exp = [self expectationWithDescription:@"Failure: insufficient balance"];
     
     // Check our balance to compare against later.
-    [psiCash getBalance:^(PsiCashRequestStatus status,
-                          NSNumber* prePurchaseBalance,
-                          NSError *error) {
+    [psiCash refreshState:@[] withCompletion:^(PsiCashRequestStatus status,
+                                               NSArray * _Nullable validTokenTypes,
+                                               BOOL isAccount,
+                                               NSNumber * _Nullable prePurchaseBalance,
+                                               NSArray * _Nullable purchasePrices,
+                                               NSError * _Nullable error) {
         XCTAssertNil(error);
         XCTAssertEqual(status, kSuccess);
         XCTAssertGreaterThanOrEqual(prePurchaseBalance, @0);

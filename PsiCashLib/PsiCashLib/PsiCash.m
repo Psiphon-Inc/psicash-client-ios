@@ -55,238 +55,6 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     return self;
 }
 
-#pragma mark - GetBalance
-
-- (void)getBalance:(void (^_Nonnull)(PsiCashRequestStatus status,
-                                     NSNumber*_Nullable balance,
-                                     NSError*_Nullable error))completionHandler
-{
-    NSMutableURLRequest *request = [self createRequestFor:@"/balance"
-                                               withMethod:@"GET"
-                                           withQueryItems:nil
-                                        includeAuthTokens:YES];
-
-    [self doRequestWithRetry:request
-                    useCache:NO
-           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
-     {
-         if (error) {
-             error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
-             return;
-         }
-
-         if (response.statusCode == kHTTPStatusOK) {
-             if (!data) {
-                 error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
-                 return;
-             }
-
-             NSNumber* balance;
-             BOOL isAccount;
-             [PsiCash parseGetBalanceResponse:data balance:&balance isAccount:&isAccount withError:&error];
-             if (error != nil) {
-                 error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
-                 return;
-             }
-
-             self->userID.isAccount = isAccount;
-
-             dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess, balance, nil); });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusUnauthorized) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalidTokens, nil, nil); });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusInternalServerError) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, nil, nil); });
-             return;
-         }
-         else {
-             error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
-                                  fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
-             return;
-         }
-     }];
-}
-
-+ (void)parseGetBalanceResponse:(NSData*)jsonData balance:(NSNumber**)balance isAccount:(BOOL*)isAccount withError:(NSError**)error
-{
-    *error = nil;
-    *balance = nil;
-    *isAccount = NO;
-
-    id object = [NSJSONSerialization
-                 JSONObjectWithData:jsonData
-                 options:0
-                 error:error];
-
-    if (*error) {
-        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
-        return;
-    }
-
-    if (![object isKindOfClass:[NSDictionary class]]) {
-        *error = [NSError errorWithMessage:@"Invalid JSON structure" fromFunction:__FUNCTION__];
-        return;
-    }
-
-    NSDictionary* data = object;
-
-    // Note: isKindOfClass is false if the key isn't found
-
-    if (![data[@"Balance"] isKindOfClass:NSNumber.class]) {
-        *error = [NSError errorWithMessage:@"Balance is not a number" fromFunction:__FUNCTION__];
-        return;
-    }
-    *balance = data[@"Balance"];
-
-    if (![data[@"IsAccount"] isKindOfClass:NSNumber.class]) {
-        *error = [NSError errorWithMessage:@"IsAccount is not a number" fromFunction:__FUNCTION__];
-        return;
-    }
-    *isAccount = [(NSNumber*)data[@"IsAccount"] boolValue];
-}
-
-
-#pragma mark - GetPurchasePrices
-
-- (void)getPurchasePricesForClasses:(NSArray*_Nonnull)classes
-                  completionHandler:(void (^_Nonnull)(PsiCashRequestStatus status,
-                                                      NSArray*_Nullable purchasePrices,
-                                                      NSError*_Nullable error))completionHandler
-{
-    NSMutableArray *queryItems = [[NSMutableArray alloc] init];
-    for (NSString *val in classes) {
-        NSURLQueryItem *qi = [NSURLQueryItem queryItemWithName:@"class" value:val];
-        [queryItems addObject:qi];
-    }
-
-    NSMutableURLRequest *request = [self createRequestFor:@"/purchase-prices"
-                                               withMethod:@"GET"
-                                           withQueryItems:queryItems
-                                        includeAuthTokens:YES];
-
-    [self doRequestWithRetry:request
-                    useCache:YES
-           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
-     {
-         if (error) {
-             error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
-             return;
-         }
-
-         if (response.statusCode == kHTTPStatusOK) {
-             if (!data) {
-                 error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
-                 return;
-             }
-
-             NSArray* purchasePrices;
-             [PsiCash parseGetPurchasePricesResponse:data purchasePrices:&purchasePrices withError:&error];
-             if (error != nil) {
-                 error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
-                 return;
-             }
-
-             dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess, purchasePrices, nil); });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusUnauthorized) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalidTokens, nil, nil); });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusInternalServerError) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, nil, nil); });
-             return;
-         }
-         else {
-             error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
-                                  fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
-             return;
-         }
-     }];
-}
-
-+ (void)parseGetPurchasePricesResponse:(NSData*_Nonnull)jsonData
-                        purchasePrices:(NSArray**_Nonnull)purchasePrices
-                             withError:(NSError**_Nullable)error
-{
-    *error = nil;
-    *purchasePrices = nil;
-
-    id object = [NSJSONSerialization
-                 JSONObjectWithData:jsonData
-                 options:0
-                 error:error];
-
-    if (*error) {
-        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
-        return;
-    }
-
-    if (![object isKindOfClass:[NSArray class]]) {
-        *error = [NSError errorWithMessage:@"Invalid JSON structure" fromFunction:__FUNCTION__];
-        return;
-    }
-
-    NSArray *data = object;
-
-    NSMutableArray *result = [[NSMutableArray alloc] init];
-
-    for (id item in data) {
-        if (![item isKindOfClass:[NSDictionary class]]) {
-            *error = [NSError errorWithMessage:@"Invalid JSON substructure" fromFunction:__FUNCTION__];
-            return;
-        }
-
-        NSDictionary *itemDict = item;
-
-        PsiCashPurchasePrice *purchasePrice = [[PsiCashPurchasePrice alloc] init];
-
-        // Note: isKindOfClass is false if the key isn't found
-
-        if (![itemDict[@"Price"] isKindOfClass:NSNumber.class]) {
-            *error = [NSError errorWithMessage:@"Price is not a number" fromFunction:__FUNCTION__];
-            return;
-        }
-        purchasePrice.price = itemDict[@"Price"];
-
-        if (![itemDict[@"Class"]  isKindOfClass:NSString.class]) {
-            *error = [NSError errorWithMessage:@"Class is not a string" fromFunction:__FUNCTION__];
-            return;
-        }
-        else if ([(NSString*)itemDict[@"Class"] length] == 0) {
-            *error = [NSError errorWithMessage:@"Class string is empty" fromFunction:__FUNCTION__];
-            return;
-        }
-        purchasePrice.transactionClass = itemDict[@"Class"];
-
-        if (![itemDict[@"Distinguisher"]  isKindOfClass:NSString.class]) {
-            *error = [NSError errorWithMessage:@"Distinguisher is not a string" fromFunction:__FUNCTION__];
-            return;
-        }
-        else if ([(NSString*)itemDict[@"Distinguisher"] length] == 0) {
-            *error = [NSError errorWithMessage:@"Distinguisher string is empty" fromFunction:__FUNCTION__];
-            return;
-        }
-        purchasePrice.distinguisher = itemDict[@"Distinguisher"];
-
-        [result addObject:purchasePrice];
-    }
-
-    *purchasePrices = result;
-}
-
-
 #pragma mark - NewTracker
 
 /*!
@@ -399,438 +167,6 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 }
 
 
-#pragma mark - ValidateTokens
-
-/*!
- Possible status codes:
-
- • kSuccess
-
- • kServerError
- */
-- (void)validateTokens:(void (^)(PsiCashRequestStatus status,
-                                 BOOL isAccount,
-                                 NSDictionary* tokensValid,
-                                 NSError *error))completionHandler
-{
-    NSMutableURLRequest *request = [self createRequestFor:@"/validate-tokens"
-                                               withMethod:@"GET"
-                                           withQueryItems:nil
-                                        includeAuthTokens:YES];
-
-    [self doRequestWithRetry:request
-                    useCache:NO
-           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
-     {
-         if (error) {
-             error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, NO, nil, error); });
-             return;
-         }
-
-         if (response.statusCode == kHTTPStatusOK) {
-             if (!data) {
-                 error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, NO, nil, error); });
-                 return;
-             }
-
-             BOOL isAccount;
-             NSDictionary* tokensValid;
-             [PsiCash parseValidateTokensResponse:data
-                                        isAccount:&isAccount
-                                      tokensValid:&tokensValid
-                                        withError:&error];
-             if (error != nil) {
-                 error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, NO, nil, error); });
-                 return;
-             }
-
-             self->userID.isAccount = isAccount;
-
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kSuccess, isAccount, tokensValid, nil);
-             });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusInternalServerError) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, NO, nil, nil); });
-             return;
-         }
-         // We're not checking for a 400 error, since we're not going to give bad input.
-         else {
-             error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
-                                  fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, NO, nil, error); });
-             return;
-         }
-     }];
-}
-
-+ (void)parseValidateTokensResponse:(NSData*)jsonData isAccount:(BOOL*)isAccount tokensValid:(NSDictionary**)tokensValid withError:(NSError**)error
-{
-    *error = nil;
-    *isAccount = NO;
-    *tokensValid = nil;
-
-    id object = [NSJSONSerialization
-                 JSONObjectWithData:jsonData
-                 options:0
-                 error:error];
-
-    if (*error) {
-        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
-        return;
-    }
-
-    if (![object isKindOfClass:[NSDictionary class]]) {
-        *error = [NSError errorWithMessage:@"Invalid JSON structure" fromFunction:__FUNCTION__];
-        return;
-    }
-
-    NSDictionary* data = object;
-
-    if (![data[@"IsAccount"] isKindOfClass:NSNumber.class]) {
-        *error = [NSError errorWithMessage:@"IsAccount is not a number" fromFunction:__FUNCTION__];
-        return;
-    }
-    *isAccount = [(NSNumber*)data[@"IsAccount"] boolValue];
-
-    if (![data[@"TokensValid"] isKindOfClass:NSDictionary.class]) {
-        *error = [NSError errorWithMessage:@"TokensValid is not a dictionary" fromFunction:__FUNCTION__];
-        return;
-    }
-    *tokensValid = data[@"TokensValid"];
-}
-
-
-#pragma mark - ValidateOrAcquireTokens
-
-- (void)validateOrAcquireTokens:(void (^_Nonnull)(PsiCashRequestStatus status,
-                                                  NSArray*_Nullable validTokenTypes,
-                                                  BOOL isAccount,
-                                                  NSError*_Nullable error))completionHandler
-{
-    NSDictionary *authTokens = self->userID.authTokens;
-    if (!authTokens || [authTokens count] == 0) {
-        // No tokens. Get new Tracker tokens.
-        [self newTracker:^(PsiCashRequestStatus status,
-                           NSDictionary *authTokens,
-                           NSError *error)
-         {
-             if (error) {
-                 error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, error); });
-                 return;
-             }
-
-             if (status != kSuccess) {
-                 dispatch_async(self->completionQueue, ^{ completionHandler(status, nil, NO, nil); });
-                 return;
-             }
-
-             // newTracker calls [self->userID setAuthTokens]
-
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kSuccess, [authTokens allKeys], NO, nil);
-             });
-             return;
-         }];
-        return;
-    }
-
-    // Validate the tokens we have.
-    [self validateTokens:^(PsiCashRequestStatus status,
-                           BOOL isAccount,
-                           NSDictionary *tokensValid,
-                           NSError *error)
-     {
-         if (error) {
-             error = [NSError errorWrapping:error withMessage:@"validateTokens request error" fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, error); });
-             return;
-         }
-
-         if (status != kSuccess) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(status, nil, NO, nil); });
-             return;
-         }
-
-         // If none of the tokens are valid, then validateTokens won't know if they
-         // belong to an account or not. In that case, we only have our previous
-         // isAccount value to check.
-         isAccount = self->userID.isAccount || isAccount;
-
-         NSDictionary* onlyValidTokens = [PsiCash onlyValidTokens:self->userID.authTokens tokensValid:tokensValid];
-
-         [self->userID setAuthTokens:onlyValidTokens isAccount:isAccount];
-
-         // If the tokens are for an account, then there's nothing more to do
-         // (unlike for a Tracker, we can't just get new ones).
-         if (isAccount) {
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kSuccess, [onlyValidTokens allKeys], true, nil);
-             });
-             return;
-         }
-
-         // If the tokens are for a Tracker, then if they're all expired we should
-         // get new ones. (They should all expire at the same time.)
-         if ([onlyValidTokens count] == 0) {
-             [self newTracker:^(PsiCashRequestStatus status,
-                                NSDictionary *authTokens,
-                                NSError *error)
-              {
-                  if (error) {
-                      error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
-                      dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, error); });
-                      return;
-                  }
-
-                  if (status != kSuccess) {
-                      dispatch_async(self->completionQueue, ^{ completionHandler(status, nil, NO, nil); });
-                      return;
-                  }
-
-                  // newTracker calls [self->userID setAuthTokens]
-
-                  dispatch_async(self->completionQueue, ^{
-                      completionHandler(kSuccess, [authTokens allKeys], NO, nil);
-                  });
-                  return;
-              }];
-             return;
-         }
-
-         // Otherwise we have valid Tracker tokens.
-         dispatch_async(self->completionQueue, ^{
-             completionHandler(kSuccess, [onlyValidTokens allKeys], NO, nil);
-         });
-         return;
-     }];
-}
-
-
-#pragma mark - NewTransaction
-
-- (void)newExpiringPurchaseTransactionForClass:(NSString*_Nonnull)transactionClass
-                             withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
-                             withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
-                                withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
-                                                                 NSNumber*_Nullable price,
-                                                                 NSNumber*_Nullable balance,
-                                                                 NSDate*_Nullable expiry,
-                                                                 NSString*_Nullable authorization,
-                                                                 NSError*_Nullable error))completionHandler
-{
-    NSMutableArray *queryItems = [[NSMutableArray alloc] init];
-    [queryItems addObject:[NSURLQueryItem queryItemWithName:@"class"
-                                                      value:transactionClass]];
-    [queryItems addObject:[NSURLQueryItem queryItemWithName:@"distinguisher"
-                                                      value:transactionDistinguisher]];
-
-    // Note the conversion from positive to negative: price to amount.
-    [queryItems addObject:[NSURLQueryItem queryItemWithName:@"expectedAmount"
-                                                      value:[NSString stringWithFormat:@"-%ld", expectedPrice.integerValue]]];
-
-    NSMutableURLRequest *request = [self createRequestFor:@"/transaction"
-                                               withMethod:@"POST"
-                                           withQueryItems:queryItems
-                                        includeAuthTokens:YES];
-
-    [self doRequestWithRetry:request
-                    useCache:NO
-           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
-     {
-         if (error) {
-             error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kInvalid, nil, nil, nil, nil, error);
-             });
-             return;
-         }
-
-         NSNumber *price, *balance;
-         NSDate *expiry;
-         NSString *authorization;
-
-         if (response.statusCode == kHTTPStatusOK ||
-             response.statusCode == kHTTPStatusTooManyRequests ||
-             response.statusCode == kHTTPStatusPaymentRequired ||
-             response.statusCode == kHTTPStatusConflict) {
-             if (!data) {
-                 error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{
-                     completionHandler(kInvalid, nil, nil, nil, nil, error);
-                 });
-                 return;
-             }
-
-             NSNumber *transactionAmount;
-
-             [PsiCash parseNewTransactionResponse:data
-                                transactionAmount:&transactionAmount
-                                          balance:&balance
-                                           expiry:&expiry
-                                    authorization:&authorization
-                                        withError:&error];
-             if (error != nil) {
-                 error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{
-                     completionHandler(kInvalid, nil, nil, nil, nil, error);
-                 });
-                 return;
-             }
-
-             price = @(-transactionAmount.integerValue);
-         }
-
-         if (response.statusCode == kHTTPStatusOK) {
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kSuccess, price, balance, expiry, authorization, nil);
-             });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusTooManyRequests) {
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kExistingTransaction, price, balance, expiry, nil, nil);
-             });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusPaymentRequired) {
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kInsufficientBalance, price, balance, nil, nil, nil);
-             });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusConflict) {
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kTransactionAmountMismatch, price, balance, nil, nil, nil);
-             });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusNotFound) {
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kTransactionTypeNotFound, nil, nil, nil, nil, nil);
-             });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusUnauthorized) {
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kInvalidTokens, nil, nil, nil, nil, nil);
-             });
-             return;
-         }
-         else if (response.statusCode == kHTTPStatusInternalServerError) {
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kServerError, nil, nil, nil, nil, nil);
-             });
-             return;
-         }
-         else {
-             error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
-                                  fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{
-                 completionHandler(kInvalid, nil, nil, nil, nil, error);
-             });
-             return;
-         }
-     }];
-}
-
-+ (void)parseNewTransactionResponse:(NSData*)jsonData
-                  transactionAmount:(NSNumber**)transactionAmount
-                            balance:(NSNumber**)balance
-                             expiry:(NSDate**)expiry
-                      authorization:(NSString**)authorization
-                          withError:(NSError**)error
-{
-    *error = nil;
-    *balance = nil;
-    *transactionAmount = nil;
-    *expiry = nil;
-    *authorization = nil;
-
-    id object = [NSJSONSerialization
-                 JSONObjectWithData:jsonData
-                 options:0
-                 error:error];
-
-    if (*error) {
-        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
-        return;
-    }
-
-    if (![object isKindOfClass:[NSDictionary class]]) {
-        *error = [NSError errorWithMessage:@"Invalid JSON structure" fromFunction:__FUNCTION__];
-        return;
-    }
-
-    NSDictionary* data = object;
-
-    // Note: isKindOfClass is false if the key isn't found
-
-    if (![data[@"TransactionAmount"] isKindOfClass:NSNumber.class]) {
-        *error = [NSError errorWithMessage:@"TransactionAmount is not a number" fromFunction:__FUNCTION__];
-        return;
-    }
-    *transactionAmount = data[@"TransactionAmount"];
-
-    if (![data[@"Balance"] isKindOfClass:NSNumber.class]) {
-        *error = [NSError errorWithMessage:@"Balance is not a number" fromFunction:__FUNCTION__];
-        return;
-    }
-    *balance = data[@"Balance"];
-
-    if (data[@"Authorization"]) {
-        if (![data[@"Authorization"] isKindOfClass:NSString.class]) {
-            *error = [NSError errorWithMessage:@"Authorization is not a string" fromFunction:__FUNCTION__];
-            return;
-        }
-        *authorization = data[@"Authorization"];
-    }
-
-    if (data[@"TransactionResponse"]) {
-        if (![data[@"TransactionResponse"] isKindOfClass:NSDictionary.class]) {
-            *error = [NSError errorWithMessage:@"TransactionResponse is not a dictionary" fromFunction:__FUNCTION__];
-            return;
-        }
-
-        NSDictionary *transactionResponse = data[@"TransactionResponse"];
-
-        if (![transactionResponse[@"Type"] isKindOfClass:NSString.class]) {
-            *error = [NSError errorWithMessage:@"Type is not a number" fromFunction:__FUNCTION__];
-            return;
-        }
-
-        NSString *type = transactionResponse[@"Type"];
-        if (![type isEqualToString:@"expiring-purchase"]) {
-            *error = [NSError errorWithMessage:@"Type is not 'expiring-purchase'" fromFunction:__FUNCTION__];
-            return;
-        }
-
-        if (![transactionResponse[@"Values"] isKindOfClass:NSDictionary.class]) {
-            *error = [NSError errorWithMessage:@"TransactionResponse.Values is not a dictionary" fromFunction:__FUNCTION__];
-            return;
-        }
-
-        NSDictionary *transactionResponseValues = transactionResponse[@"Values"];
-
-        if (![transactionResponseValues[@"Expires"] isKindOfClass:NSString.class]) {
-            *error = [NSError errorWithMessage:@"TransactionResponse.Values.Expires is not a string" fromFunction:__FUNCTION__];
-            return;
-        }
-
-        *expiry = [PsiCash dateFromISO8601String:transactionResponseValues[@"Expires"]];
-        if (!*expiry) {
-            *error = [NSError errorWithMessage:@"TransactionResponse.Values.Expires failed to parse" fromFunction:__FUNCTION__];
-            return;
-        }
-    }
-}
-
-
 #pragma mark - RefreshState
 
 - (void)refreshState:(NSArray*_Nonnull)purchaseClasses
@@ -862,8 +198,8 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      Logic flow overview:
 
      1. If there are no tokens:
-        a. If isAccount then return. The user needs to log in immediately.
-        b. If !isAccount then call NewTracker to get new tracker tokens.
+     a. If isAccount then return. The user needs to log in immediately.
+     b. If !isAccount then call NewTracker to get new tracker tokens.
      2. Make the RefreshClientState request.
      3. If isAccount then return. (Even if there are no valid tokens.)
      4. If there are valid (tracker) tokens then return.
@@ -1134,6 +470,225 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     }
 
     *purchasePrices = pps;
+}
+
+
+#pragma mark - NewTransaction
+
+- (void)newExpiringPurchaseTransactionForClass:(NSString*_Nonnull)transactionClass
+                             withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
+                             withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
+                                withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                                                 NSNumber*_Nullable price,
+                                                                 NSNumber*_Nullable balance,
+                                                                 NSDate*_Nullable expiry,
+                                                                 NSString*_Nullable authorization,
+                                                                 NSError*_Nullable error))completionHandler
+{
+    NSMutableArray *queryItems = [[NSMutableArray alloc] init];
+    [queryItems addObject:[NSURLQueryItem queryItemWithName:@"class"
+                                                      value:transactionClass]];
+    [queryItems addObject:[NSURLQueryItem queryItemWithName:@"distinguisher"
+                                                      value:transactionDistinguisher]];
+
+    // Note the conversion from positive to negative: price to amount.
+    [queryItems addObject:[NSURLQueryItem queryItemWithName:@"expectedAmount"
+                                                      value:[NSString stringWithFormat:@"-%ld", expectedPrice.integerValue]]];
+
+    NSMutableURLRequest *request = [self createRequestFor:@"/transaction"
+                                               withMethod:@"POST"
+                                           withQueryItems:queryItems
+                                        includeAuthTokens:YES];
+
+    [self doRequestWithRetry:request
+                    useCache:NO
+           completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
+     {
+         if (error) {
+             error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kInvalid, nil, nil, nil, nil, error);
+             });
+             return;
+         }
+
+         NSNumber *price, *balance;
+         NSDate *expiry;
+         NSString *authorization;
+
+         if (response.statusCode == kHTTPStatusOK ||
+             response.statusCode == kHTTPStatusTooManyRequests ||
+             response.statusCode == kHTTPStatusPaymentRequired ||
+             response.statusCode == kHTTPStatusConflict) {
+             if (!data) {
+                 error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
+                 dispatch_async(self->completionQueue, ^{
+                     completionHandler(kInvalid, nil, nil, nil, nil, error);
+                 });
+                 return;
+             }
+
+             NSNumber *transactionAmount;
+
+             [PsiCash parseNewTransactionResponse:data
+                                transactionAmount:&transactionAmount
+                                          balance:&balance
+                                           expiry:&expiry
+                                    authorization:&authorization
+                                        withError:&error];
+             if (error != nil) {
+                 error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
+                 dispatch_async(self->completionQueue, ^{
+                     completionHandler(kInvalid, nil, nil, nil, nil, error);
+                 });
+                 return;
+             }
+
+             price = @(-transactionAmount.integerValue);
+         }
+
+         if (response.statusCode == kHTTPStatusOK) {
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kSuccess, price, balance, expiry, authorization, nil);
+             });
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusTooManyRequests) {
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kExistingTransaction, price, balance, expiry, nil, nil);
+             });
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusPaymentRequired) {
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kInsufficientBalance, price, balance, nil, nil, nil);
+             });
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusConflict) {
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kTransactionAmountMismatch, price, balance, nil, nil, nil);
+             });
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusNotFound) {
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kTransactionTypeNotFound, nil, nil, nil, nil, nil);
+             });
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusUnauthorized) {
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kInvalidTokens, nil, nil, nil, nil, nil);
+             });
+             return;
+         }
+         else if (response.statusCode == kHTTPStatusInternalServerError) {
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kServerError, nil, nil, nil, nil, nil);
+             });
+             return;
+         }
+         else {
+             error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
+                                  fromFunction:__FUNCTION__];
+             dispatch_async(self->completionQueue, ^{
+                 completionHandler(kInvalid, nil, nil, nil, nil, error);
+             });
+             return;
+         }
+     }];
+}
+
++ (void)parseNewTransactionResponse:(NSData*)jsonData
+                  transactionAmount:(NSNumber**)transactionAmount
+                            balance:(NSNumber**)balance
+                             expiry:(NSDate**)expiry
+                      authorization:(NSString**)authorization
+                          withError:(NSError**)error
+{
+    *error = nil;
+    *balance = nil;
+    *transactionAmount = nil;
+    *expiry = nil;
+    *authorization = nil;
+
+    id object = [NSJSONSerialization
+                 JSONObjectWithData:jsonData
+                 options:0
+                 error:error];
+
+    if (*error) {
+        *error = [NSError errorWrapping:*error withMessage:@"NSJSONSerialization error" fromFunction:__FUNCTION__];
+        return;
+    }
+
+    if (![object isKindOfClass:[NSDictionary class]]) {
+        *error = [NSError errorWithMessage:@"Invalid JSON structure" fromFunction:__FUNCTION__];
+        return;
+    }
+
+    NSDictionary* data = object;
+
+    // Note: isKindOfClass is false if the key isn't found
+
+    if (![data[@"TransactionAmount"] isKindOfClass:NSNumber.class]) {
+        *error = [NSError errorWithMessage:@"TransactionAmount is not a number" fromFunction:__FUNCTION__];
+        return;
+    }
+    *transactionAmount = data[@"TransactionAmount"];
+
+    if (![data[@"Balance"] isKindOfClass:NSNumber.class]) {
+        *error = [NSError errorWithMessage:@"Balance is not a number" fromFunction:__FUNCTION__];
+        return;
+    }
+    *balance = data[@"Balance"];
+
+    if (data[@"Authorization"]) {
+        if (![data[@"Authorization"] isKindOfClass:NSString.class]) {
+            *error = [NSError errorWithMessage:@"Authorization is not a string" fromFunction:__FUNCTION__];
+            return;
+        }
+        *authorization = data[@"Authorization"];
+    }
+
+    if (data[@"TransactionResponse"]) {
+        if (![data[@"TransactionResponse"] isKindOfClass:NSDictionary.class]) {
+            *error = [NSError errorWithMessage:@"TransactionResponse is not a dictionary" fromFunction:__FUNCTION__];
+            return;
+        }
+
+        NSDictionary *transactionResponse = data[@"TransactionResponse"];
+
+        if (![transactionResponse[@"Type"] isKindOfClass:NSString.class]) {
+            *error = [NSError errorWithMessage:@"Type is not a number" fromFunction:__FUNCTION__];
+            return;
+        }
+
+        NSString *type = transactionResponse[@"Type"];
+        if (![type isEqualToString:@"expiring-purchase"]) {
+            *error = [NSError errorWithMessage:@"Type is not 'expiring-purchase'" fromFunction:__FUNCTION__];
+            return;
+        }
+
+        if (![transactionResponse[@"Values"] isKindOfClass:NSDictionary.class]) {
+            *error = [NSError errorWithMessage:@"TransactionResponse.Values is not a dictionary" fromFunction:__FUNCTION__];
+            return;
+        }
+
+        NSDictionary *transactionResponseValues = transactionResponse[@"Values"];
+
+        if (![transactionResponseValues[@"Expires"] isKindOfClass:NSString.class]) {
+            *error = [NSError errorWithMessage:@"TransactionResponse.Values.Expires is not a string" fromFunction:__FUNCTION__];
+            return;
+        }
+
+        *expiry = [PsiCash dateFromISO8601String:transactionResponseValues[@"Expires"]];
+        if (!*expiry) {
+            *error = [NSError errorWithMessage:@"TransactionResponse.Values.Expires failed to parse" fromFunction:__FUNCTION__];
+            return;
+        }
+    }
 }
 
 
