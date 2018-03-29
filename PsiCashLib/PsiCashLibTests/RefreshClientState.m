@@ -38,7 +38,7 @@
     NSArray *purchaseClasses =  @[@"speed-boost"];
 
     [psiCash refreshState:purchaseClasses
-           withCompletion:^(PsiCashRequestStatus status,
+           withCompletion:^(PsiCashStatus status,
                             NSArray * _Nullable validTokenTypes,
                             BOOL isAccount,
                             NSNumber * _Nullable balance,
@@ -46,7 +46,7 @@
                             NSError * _Nullable error)
      {
          XCTAssertNil(error);
-         XCTAssertEqual(status, kSuccess);
+         XCTAssertEqual(status, PsiCashStatus_Success);
 
          XCTAssertFalse(isAccount);
 
@@ -73,7 +73,7 @@
     // Make the request twice, to ensure the tokens exist for the second call.
 
     [psiCash refreshState:purchaseClasses
-           withCompletion:^(PsiCashRequestStatus status,
+           withCompletion:^(PsiCashStatus status,
                             NSArray * _Nullable validTokenTypes,
                             BOOL isAccount,
                             NSNumber * _Nullable balance,
@@ -81,7 +81,7 @@
                             NSError * _Nullable error)
      {
          XCTAssertNil(error);
-         XCTAssertEqual(status, kSuccess);
+         XCTAssertEqual(status, PsiCashStatus_Success);
 
          XCTAssertFalse(isAccount);
 
@@ -95,7 +95,7 @@
          XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
 
          [psiCash refreshState:purchaseClasses
-                withCompletion:^(PsiCashRequestStatus status,
+                withCompletion:^(PsiCashStatus status,
                                  NSArray * _Nullable validTokenTypes,
                                  BOOL isAccount,
                                  NSNumber * _Nullable balance,
@@ -103,7 +103,7 @@
                                  NSError * _Nullable error)
           {
               XCTAssertNil(error);
-              XCTAssertEqual(status, kSuccess);
+              XCTAssertEqual(status, PsiCashStatus_Success);
 
               XCTAssertFalse(isAccount);
 
@@ -129,7 +129,7 @@
     NSArray *purchaseClasses =  @[];
 
     [psiCash refreshState:purchaseClasses
-           withCompletion:^(PsiCashRequestStatus status,
+           withCompletion:^(PsiCashStatus status,
                             NSArray * _Nullable validTokenTypes,
                             BOOL isAccount,
                             NSNumber * _Nullable balance,
@@ -137,7 +137,7 @@
                             NSError * _Nullable error)
      {
          XCTAssertNil(error);
-         XCTAssertEqual(status, kSuccess);
+         XCTAssertEqual(status, PsiCashStatus_Success);
 
          XCTAssertFalse(isAccount);
 
@@ -162,7 +162,7 @@
     NSArray *purchaseClasses =  @[@"speed-boost", @TEST_DEBIT_TRANSACTION_CLASS];
 
     [psiCash refreshState:purchaseClasses
-           withCompletion:^(PsiCashRequestStatus status,
+           withCompletion:^(PsiCashStatus status,
                             NSArray * _Nullable validTokenTypes,
                             BOOL isAccount,
                             NSNumber * _Nullable balance,
@@ -170,7 +170,7 @@
                             NSError * _Nullable error)
      {
          XCTAssertNil(error);
-         XCTAssertEqual(status, kSuccess);
+         XCTAssertEqual(status, PsiCashStatus_Success);
 
          XCTAssertFalse(isAccount);
 
@@ -195,7 +195,7 @@
     NSArray *purchaseClasses =  @[@"speed-boost"];
 
     [psiCash refreshState:purchaseClasses
-           withCompletion:^(PsiCashRequestStatus status,
+           withCompletion:^(PsiCashStatus status,
                             NSArray * _Nullable validTokenTypes,
                             BOOL isAccount,
                             NSNumber * _Nullable originalBalance,
@@ -203,7 +203,7 @@
                             NSError * _Nullable error)
      {
          XCTAssertNil(error);
-         XCTAssertEqual(status, kSuccess);
+         XCTAssertEqual(status, PsiCashStatus_Success);
 
          XCTAssertFalse(isAccount);
 
@@ -224,7 +224,7 @@
 
               // Refresh state again to check balance.
               [psiCash refreshState:purchaseClasses
-                     withCompletion:^(PsiCashRequestStatus status,
+                     withCompletion:^(PsiCashStatus status,
                                       NSArray * _Nullable validTokenTypes,
                                       BOOL isAccount,
                                       NSNumber * _Nullable newBalance,
@@ -232,7 +232,7 @@
                                       NSError * _Nullable error)
                {
                    XCTAssertNil(error);
-                   XCTAssertEqual(status, kSuccess);
+                   XCTAssertEqual(status, PsiCashStatus_Success);
 
                    // Is the balance bigger?
                    XCTAssertEqual(newBalance.integerValue,
@@ -255,7 +255,7 @@
     NSArray *purchaseClasses =  @[@"speed-boost"];
 
     [psiCash refreshState:purchaseClasses
-           withCompletion:^(PsiCashRequestStatus status,
+           withCompletion:^(PsiCashStatus status,
                             NSArray * _Nullable validTokenTypes,
                             BOOL isAccount,
                             NSNumber * _Nullable balance,
@@ -263,7 +263,7 @@
                             NSError * _Nullable error)
      {
          XCTAssertNotNil(error);
-         XCTAssertEqual(status, kInvalid);
+         XCTAssertEqual(status, PsiCashStatus_Invalid);
 
          [TestHelpers clearUserID:psiCash];
 
@@ -284,7 +284,7 @@
     NSArray *purchaseClasses =  @[@"speed-boost"];
 
     [psiCash refreshState:purchaseClasses
-           withCompletion:^(PsiCashRequestStatus status,
+           withCompletion:^(PsiCashStatus status,
                             NSArray * _Nullable validTokenTypes,
                             BOOL isAccount,
                             NSNumber * _Nullable balance,
@@ -292,7 +292,7 @@
                             NSError * _Nullable error)
      {
          XCTAssertNil(error);
-         XCTAssertEqual(status, kSuccess);
+         XCTAssertEqual(status, PsiCashStatus_Success);
 
          XCTAssertTrue(isAccount);
 

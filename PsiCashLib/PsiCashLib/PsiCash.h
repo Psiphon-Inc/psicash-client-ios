@@ -9,16 +9,16 @@
 #import <Foundation/Foundation.h>
 
 
-typedef enum {
-    kInvalid = -1,
-    kSuccess = 0,
-    kExistingTransaction,
-    kInsufficientBalance,
-    kTransactionAmountMismatch,
-    kTransactionTypeNotFound,
-    kInvalidTokens,
-    kServerError
-} PsiCashRequestStatus;
+typedef NS_ENUM(NSInteger, PsiCashStatus) {
+    PsiCashStatus_Invalid = -1,
+    PsiCashStatus_Success = 0,
+    PsiCashStatus_ExistingTransaction,
+    PsiCashStatus_InsufficientBalance,
+    PsiCashStatus_TransactionAmountMismatch,
+    PsiCashStatus_TransactionTypeNotFound,
+    PsiCashStatus_InvalidTokens,
+    PsiCashStatus_ServerError
+} NS_ENUM_AVAILABLE_IOS(6_0);
 
 
 @interface PsiCashPurchasePrice : NSObject
@@ -64,17 +64,17 @@ typedef enum {
 
  Possible status codes:
 
- • kSuccess
+ • PsiCashStatus_Success
 
- • kServerError
+ • PsiCashStatus_ServerError
 
- • kInvalid: error will be non-nil.
+ • PsiCashStatus_Invalid: error will be non-nil.
 
- • kInvalidTokens: Should never happen. The local user ID will be cleared.
+ • PsiCashStatus_InvalidTokens: Should never happen. The local user ID will be cleared.
 
  */
 - (void)refreshState:(NSArray*_Nonnull)purchaseClasses
-      withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+      withCompletion:(void (^_Nonnull)(PsiCashStatus status,
                                        NSArray*_Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber*_Nullable balance,
@@ -101,34 +101,34 @@ typedef enum {
 
  Possible status codes:
 
- • kSuccess: The purchase transaction was successful. price, balance,
+ • PsiCashStatus_Success: The purchase transaction was successful. price, balance,
  and expiry will be valid. authorization will be valid if applicable.
 
- • kExistingTransaction: There is already a non-expired purchase that
+ • PsiCashStatus_ExistingTransaction: There is already a non-expired purchase that
  prevents this purchase from proceeding. price and balance will be valid.
  expiry will be valid and will be set to the expiry of the existing purchase.
 
- • kInsufficientBalance: The user does not have sufficient Psi to make
+ • PsiCashStatus_InsufficientBalance: The user does not have sufficient Psi to make
  the requested purchase. price and balance are valid.
 
- • kTransactionAmountMismatch: The actual purchase price does not match
+ • PsiCashStatus_TransactionAmountMismatch: The actual purchase price does not match
  expectedPrice, so the purchase cannot proceed. The price list should be updated
  immediately. price and balance are valid.
 
- • kTransactionTypeNotFound: A transaction type with the given class and
+ • PsiCashStatus_TransactionTypeNotFound: A transaction type with the given class and
  distinguisher could not be found. The price list should be updated immediately,
  but it might also indicate an out-of-date app.
 
- • kInvalidTokens: The current auth tokens are invalid.
+ • PsiCashStatus_InvalidTokens: The current auth tokens are invalid.
  TODO: Figure out how to handle this. It shouldn't be a factor for Trackers or MVP.
 
- • kServerError: An error occurred on the server. Probably report to the user and
+ • PsiCashStatus_ServerError: An error occurred on the server. Probably report to the user and
  try again later.
  */
 - (void)newExpiringPurchaseTransactionForClass:(NSString*_Nonnull)transactionClass
                              withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
                              withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
-                                withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                withCompletion:(void (^_Nonnull)(PsiCashStatus status,
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable expiry,

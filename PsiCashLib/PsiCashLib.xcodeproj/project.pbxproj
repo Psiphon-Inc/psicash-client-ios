@@ -18,7 +18,7 @@
 		66C0139C204D7B4C00F55E04 /* UserIdentity.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C0139B204D7B4C00F55E04 /* UserIdentity.m */; };
 		66C0139E204D7B7000F55E04 /* UserIdentity.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C0139D204D7B7000F55E04 /* UserIdentity.h */; };
 		66C013A020519A3100F55E04 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 66C0139F20519A3100F55E04 /* README.md */; };
-		66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */; };
 		66C013AD2054415900F55E04 /* TestHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013AC2054415900F55E04 /* TestHelpers.m */; };
 		66C013B02054497B00F55E04 /* HTTPStatusCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013AF2054497B00F55E04 /* HTTPStatusCodes.m */; };
 		66C013B22054697200F55E04 /* NewTransaction.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013B12054697200F55E04 /* NewTransaction.m */; };
@@ -135,9 +135,9 @@
 			files = (
 				66C0139E204D7B7000F55E04 /* UserIdentity.h in Headers */,
 				6647F99D204CD53100C7457B /* NSError+NSErrorExt.h in Headers */,
-				66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */,
 				6647F99E204CD53100C7457B /* PsiCash.h in Headers */,
 				6647F98F204CD4D100C7457B /* PsiCashLib.h in Headers */,
+				66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

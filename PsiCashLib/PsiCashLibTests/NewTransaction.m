@@ -27,14 +27,14 @@
     
     XCTestExpectation *exp = [self expectationWithDescription:@"Init tokens"];
 
-    [psiCash refreshState:@[] withCompletion:^(PsiCashRequestStatus status,
+    [psiCash refreshState:@[] withCompletion:^(PsiCashStatus status,
                                                NSArray * _Nullable validTokenTypes,
                                                BOOL isAccount,
                                                NSNumber * _Nullable balance,
                                                NSArray * _Nullable purchasePrices,
                                                NSError * _Nullable error) {
         XCTAssertNil(error);
-        XCTAssertEqual(status, kSuccess);
+        XCTAssertEqual(status, PsiCashStatus_Success);
 
         [exp fulfill];
     }];
@@ -57,21 +57,21 @@
          XCTAssert(success);
          
          // Check our balance to compare against later.
-         [psiCash refreshState:@[] withCompletion:^(PsiCashRequestStatus status,
+         [psiCash refreshState:@[] withCompletion:^(PsiCashStatus status,
                                                     NSArray * _Nullable validTokenTypes,
                                                     BOOL isAccount,
                                                     NSNumber * _Nullable prePurchaseBalance,
                                                     NSArray * _Nullable purchasePrices,
                                                     NSError * _Nullable error) {
              XCTAssertNil(error);
-             XCTAssertEqual(status, kSuccess);
+             XCTAssertEqual(status, PsiCashStatus_Success);
              XCTAssertGreaterThanOrEqual(prePurchaseBalance.integerValue, ONE_TRILLION);
              
              // Now make the transaction
              [psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                            withDistinguisher:@"1trillion-1second"
                                            withExpectedPrice:@ONE_TRILLION
-                                              withCompletion:^(PsiCashRequestStatus status,
+                                              withCompletion:^(PsiCashStatus status,
                                                                NSNumber*_Nullable price,
                                                                NSNumber*_Nullable balance,
                                                                NSDate*_Nullable expiry,
@@ -79,7 +79,7 @@
                                                                NSError*_Nullable error)
               {
                   XCTAssertNil(error);
-                  XCTAssertEqual(status, kSuccess);
+                  XCTAssertEqual(status, PsiCashStatus_Success);
                   XCTAssertEqual(price.integerValue, ONE_TRILLION);
                   XCTAssertEqual(balance, @(prePurchaseBalance.integerValue - ONE_TRILLION));
                   XCTAssertNotNil(expiry);
@@ -104,20 +104,20 @@
     XCTestExpectation *exp = [self expectationWithDescription:@"Failure: insufficient balance"];
     
     // Check our balance to compare against later.
-    [psiCash refreshState:@[] withCompletion:^(PsiCashRequestStatus status,
+    [psiCash refreshState:@[] withCompletion:^(PsiCashStatus status,
                                                NSArray * _Nullable validTokenTypes,
                                                BOOL isAccount,
                                                NSNumber * _Nullable prePurchaseBalance,
                                                NSArray * _Nullable purchasePrices,
                                                NSError * _Nullable error) {
         XCTAssertNil(error);
-        XCTAssertEqual(status, kSuccess);
+        XCTAssertEqual(status, PsiCashStatus_Success);
         XCTAssertGreaterThanOrEqual(prePurchaseBalance, @0);
         
         [psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                       withDistinguisher:@"int64max"
                                       withExpectedPrice:@TEST_INT64_MAX
-                                         withCompletion:^(PsiCashRequestStatus status,
+                                         withCompletion:^(PsiCashStatus status,
                                                           NSNumber*_Nullable price,
                                                           NSNumber*_Nullable balance,
                                                           NSDate*_Nullable expiry,
@@ -125,7 +125,7 @@
                                                           NSError*_Nullable error)
          {
              XCTAssertNil(error);
-             XCTAssertEqual(status, kInsufficientBalance);
+             XCTAssertEqual(status, PsiCashStatus_InsufficientBalance);
              XCTAssertEqual(price.integerValue, TEST_INT64_MAX);
              XCTAssertEqual(balance, prePurchaseBalance);
              XCTAssertNil(expiry);
@@ -151,7 +151,7 @@
          [psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                        withDistinguisher:@"1trillion-1minute"
                                        withExpectedPrice:@ONE_TRILLION
-                                          withCompletion:^(PsiCashRequestStatus status,
+                                          withCompletion:^(PsiCashStatus status,
                                                            NSNumber*_Nullable price,
                                                            NSNumber*_Nullable balance,
                                                            NSDate*_Nullable successfulExpiry,
@@ -159,7 +159,7 @@
                                                            NSError*_Nullable error)
           {
               XCTAssertNil(error);
-              XCTAssertEqual(status, kSuccess); // IF THIS FAILS, WAIT ONE MINUTE AND TRY AGAIN
+              XCTAssertEqual(status, PsiCashStatus_Success); // IF THIS FAILS, WAIT ONE MINUTE AND TRY AGAIN
               XCTAssertEqual(price.integerValue, ONE_TRILLION);
               XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
               XCTAssertNil(authorization);
@@ -172,7 +172,7 @@
               [psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                             withDistinguisher:@"1trillion-1minute"
                                             withExpectedPrice:@ONE_TRILLION
-                                               withCompletion:^(PsiCashRequestStatus status,
+                                               withCompletion:^(PsiCashStatus status,
                                                                 NSNumber*_Nullable price,
                                                                 NSNumber*_Nullable balance,
                                                                 NSDate*_Nullable expiry,
@@ -180,7 +180,7 @@
                                                                 NSError*_Nullable error)
                {
                    XCTAssertNil(error);
-                   XCTAssertEqual(status, kExistingTransaction);
+                   XCTAssertEqual(status, PsiCashStatus_ExistingTransaction);
                    XCTAssertEqual(price.integerValue, ONE_TRILLION);
                    XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
                    XCTAssertNil(authorization);
@@ -201,7 +201,7 @@
     [psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                   withDistinguisher:@"int64max"
                                   withExpectedPrice:@(TEST_INT64_MAX-1) // MISMATCH!
-                                     withCompletion:^(PsiCashRequestStatus status,
+                                     withCompletion:^(PsiCashStatus status,
                                                       NSNumber*_Nullable price,
                                                       NSNumber*_Nullable balance,
                                                       NSDate*_Nullable expiry,
@@ -209,7 +209,7 @@
                                                       NSError*_Nullable error)
      {
          XCTAssertNil(error);
-         XCTAssertEqual(status, kTransactionAmountMismatch);
+         XCTAssertEqual(status, PsiCashStatus_TransactionAmountMismatch);
          XCTAssertEqual(price.integerValue, TEST_INT64_MAX);
          XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
          XCTAssertNil(expiry);
@@ -227,7 +227,7 @@
     [psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                   withDistinguisher:@"INVALID"
                                   withExpectedPrice:@(TEST_INT64_MAX)
-                                     withCompletion:^(PsiCashRequestStatus status,
+                                     withCompletion:^(PsiCashStatus status,
                                                       NSNumber*_Nullable price,
                                                       NSNumber*_Nullable balance,
                                                       NSDate*_Nullable expiry,
@@ -235,7 +235,7 @@
                                                       NSError*_Nullable error)
      {
          XCTAssertNil(error);
-         XCTAssertEqual(status, kTransactionTypeNotFound);
+         XCTAssertEqual(status, PsiCashStatus_TransactionTypeNotFound);
          XCTAssertNil(price);
          XCTAssertNil(balance);
          XCTAssertNil(expiry);

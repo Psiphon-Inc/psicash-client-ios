@@ -14,4 +14,4 @@ FOUNDATION_EXPORT const unsigned char PsiCashLibVersionString[];
 // In this header, you should import all the public headers of your framework using statements like #import <PsiCashLib/PublicHeader.h>
 
 #import <PsiCashLib/PsiCash.h>
-#import <PsiCashLib/HTTPStatusCodes.h>
+

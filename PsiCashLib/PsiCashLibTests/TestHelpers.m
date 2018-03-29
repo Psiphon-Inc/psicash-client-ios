@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "TestHelpers.h"
 #import "UserIdentity.h"
+#import "HTTPStatusCodes.h"
 
 // Expose some private methods to help with testing
 @interface PsiCash (Testing)

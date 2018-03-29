@@ -57,15 +57,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 #pragma mark - NewTracker
 
-/*!
- Possible status codes:
-
- • kSuccess
-
- • kServerError
-
- */
-- (void)newTracker:(void (^)(PsiCashRequestStatus status,
+- (void)newTracker:(void (^)(PsiCashStatus status,
                              NSDictionary* authTokens,
                              NSError *error))completionHandler
 {
@@ -80,14 +72,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, error); });
              return;
          }
 
          if (response.statusCode == kHTTPStatusOK) {
              if (!data) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, error); });
                  return;
              }
 
@@ -95,23 +87,23 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              [PsiCash parseNewTrackerResponse:data authTokens:&authTokens withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, error); });
                  return;
              }
 
              [self->userID setAuthTokens:authTokens isAccount:NO];
 
-             dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess, authTokens, nil); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Success, authTokens, nil); });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, nil, nil); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_ServerError, nil, nil); });
              return;
          }
          else {
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, error); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, error); });
              return;
          }
      }];
@@ -170,7 +162,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 #pragma mark - RefreshState
 
 - (void)refreshState:(NSArray*_Nonnull)purchaseClasses
-      withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+      withCompletion:(void (^_Nonnull)(PsiCashStatus status,
                                        NSArray*_Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber*_Nullable balance,
@@ -187,7 +179,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 // this method is entered with tokens in hand. This prevents infinite recursion.
 - (void)refreshStateHelper:(NSArray*_Nonnull)purchaseClasses
             allowRecursion:(BOOL)allowRecursion
-            withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+            withCompletion:(void (^_Nonnull)(PsiCashStatus status,
                                              NSArray*_Nullable validTokenTypes,
                                              BOOL isAccount,
                                              NSNumber*_Nullable balance,
@@ -215,30 +207,30 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
             // This is/was a logged-in account. We can't just get a new tracker.
             // The app will have to force a login for the user to do anything.
             NSArray *validTokenTypes = [[NSArray alloc] init]; // empty array
-            dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess, validTokenTypes, YES, nil, nil, nil); });
+            dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Success, validTokenTypes, YES, nil, nil, nil); });
             return;
         }
 
         if (!allowRecursion) {
             // We have already recursed and can't do it again. This is an error condition.
             NSError *error = [NSError errorWithMessage:@"failed to obtain valid tracker tokens (a)" fromFunction:__FUNCTION__];
-            dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+            dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
             return;
         }
 
         // Get new tracker tokens. (Which is effectively getting a new identity.)
-        [self newTracker:^(PsiCashRequestStatus status,
+        [self newTracker:^(PsiCashStatus status,
                            NSDictionary *authTokens,
                            NSError *error)
          {
              if (error) {
                  error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
                  return;
              }
 
-             if (status != kSuccess) {
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+             if (status != PsiCashStatus_Success) {
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
                  return;
              }
 
@@ -273,14 +265,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
              return;
          }
 
          if (response.statusCode == kHTTPStatusOK) {
              if (!data) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
                  return;
              }
 
@@ -296,7 +288,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                       withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
                  return;
              }
 
@@ -315,7 +307,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              // something is very wrong.
              if (self->userID.isAccount && !isAccount) {
                  error = [NSError errorWithMessage:@"invalid is-account state" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
                  return;
              }
 
@@ -323,7 +315,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
              if (self->userID.isAccount) {
                  // For accounts there's nothing else we can do, regardless of the state of token validity.
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess,
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Success,
                                                                             [onlyValidTokens allKeys],
                                                                             self->userID.isAccount,
                                                                             balance,
@@ -334,7 +326,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
              if (onlyValidTokens.count > 0) {
                  // We have a good tracker state.
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kSuccess,
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Success,
                                                                             [onlyValidTokens allKeys],
                                                                             self->userID.isAccount,
                                                                             balance,
@@ -348,7 +340,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              if (!allowRecursion) {
                  // No further recursion is allowed, so there's nothing more we can do.
                  NSError *error = [NSError errorWithMessage:@"failed to obtain valid tracker tokens (b)" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
                  return;
              }
 
@@ -365,11 +357,11 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              // This can only happen if the tokens we sent didn't all belong to
              // same user. This really should never happen.
              [self->userID clear];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalidTokens, nil, NO, nil, nil, nil); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_InvalidTokens, nil, NO, nil, nil, nil); });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(kServerError, nil, NO, nil, nil, nil); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_ServerError, nil, NO, nil, nil, nil); });
              return;
          }
          else {
@@ -377,7 +369,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              // Shouldn't happen.
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(kInvalid, nil, NO, nil, nil, error); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
              return;
          }
      }];
@@ -478,7 +470,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 - (void)newExpiringPurchaseTransactionForClass:(NSString*_Nonnull)transactionClass
                              withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
                              withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
-                                withCompletion:(void (^_Nonnull)(PsiCashRequestStatus status,
+                                withCompletion:(void (^_Nonnull)(PsiCashStatus status,
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable expiry,
@@ -507,7 +499,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kInvalid, nil, nil, nil, nil, error);
+                 completionHandler(PsiCashStatus_Invalid, nil, nil, nil, nil, error);
              });
              return;
          }
@@ -523,7 +515,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              if (!data) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
                  dispatch_async(self->completionQueue, ^{
-                     completionHandler(kInvalid, nil, nil, nil, nil, error);
+                     completionHandler(PsiCashStatus_Invalid, nil, nil, nil, nil, error);
                  });
                  return;
              }
@@ -539,7 +531,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
                  dispatch_async(self->completionQueue, ^{
-                     completionHandler(kInvalid, nil, nil, nil, nil, error);
+                     completionHandler(PsiCashStatus_Invalid, nil, nil, nil, nil, error);
                  });
                  return;
              }
@@ -549,43 +541,43 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
          if (response.statusCode == kHTTPStatusOK) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kSuccess, price, balance, expiry, authorization, nil);
+                 completionHandler(PsiCashStatus_Success, price, balance, expiry, authorization, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusTooManyRequests) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kExistingTransaction, price, balance, expiry, nil, nil);
+                 completionHandler(PsiCashStatus_ExistingTransaction, price, balance, expiry, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusPaymentRequired) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kInsufficientBalance, price, balance, nil, nil, nil);
+                 completionHandler(PsiCashStatus_InsufficientBalance, price, balance, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusConflict) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kTransactionAmountMismatch, price, balance, nil, nil, nil);
+                 completionHandler(PsiCashStatus_TransactionAmountMismatch, price, balance, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusNotFound) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kTransactionTypeNotFound, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_TransactionTypeNotFound, nil, nil, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusUnauthorized) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kInvalidTokens, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_InvalidTokens, nil, nil, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kServerError, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_ServerError, nil, nil, nil, nil, nil);
              });
              return;
          }
@@ -593,7 +585,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(kInvalid, nil, nil, nil, nil, error);
+                 completionHandler(PsiCashStatus_Invalid, nil, nil, nil, nil, error);
              });
              return;
          }
