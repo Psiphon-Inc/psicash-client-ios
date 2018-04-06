@@ -25,6 +25,47 @@
                                              NSError*_Nullable error))completionHandler;
 
 - (void)clearUserID;
+
+- (void)setRequestMutators:(NSArray*)mutators;
+- (void)clearRequestMutators;
+- (void)requestMutator:(NSMutableURLRequest*)request;
+@end
+
+@implementation PsiCash (Testing)
+
+// Global vars, not ivars, which is what they should be. I can't figure out how to make an ivar in an extension. Let's hope these tests aren't concurrent!
+NSArray *requestMutators;
+int requestMutatorsIndex;
+
+- (void)setRequestMutators:(NSArray*)mutators
+{
+    requestMutators = mutators;
+    requestMutatorsIndex = 0;
+}
+
+- (void)clearRequestMutators
+{
+    requestMutators = nil;
+    requestMutatorsIndex = 0;
+}
+
++ (void)requestMutator:(NSMutableURLRequest*)request
+{
+    if (requestMutators != nil) {
+        if (requestMutatorsIndex >= requestMutators.count) {
+            // We're beyond our mutators, so don't change anything.
+            return;
+        }
+
+        // Any given mutator item can be nil
+        if (requestMutators[requestMutatorsIndex] &&
+            requestMutators[requestMutatorsIndex] != [NSNull null]) {
+            [request setValue:requestMutators[requestMutatorsIndex]
+           forHTTPHeaderField:@TEST_HEADER];
+        }
+        requestMutatorsIndex += 1;
+    }
+}
 @end
 
 @implementation TestHelpers
@@ -39,6 +80,17 @@
     [[psiCash valueForKey:@"userID"] setIsAccount:YES];
 }
 
++ (NSDictionary*)getAuthTokens:(PsiCash*_Nonnull)psiCash
+{
+    return [[psiCash valueForKey:@"userID"] authTokens];
+}
+
++ (void)setRequestMutators:(PsiCash*_Nonnull)psiCash
+                  mutators:(NSArray*_Nonnull)mutators
+{
+    [psiCash setRequestMutators:mutators];
+}
+
 + (void)make1TRewardRequest:(PsiCash*_Nonnull)psiCash
                  completion:(void (^_Nonnull)(BOOL success))completionHandler
 {
@@ -46,7 +98,7 @@
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"class"
                                                       value:@TEST_CREDIT_TRANSACTION_CLASS]];
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"distinguisher"
-                                                      value:@"1trillion-1second"]];
+                                                      value:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER]];
 
     NSMutableURLRequest *request = [psiCash createRequestFor:@"/transaction"
                                                   withMethod:@"POST"

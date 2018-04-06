@@ -36,99 +36,133 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 
 - (id _Nonnull)init;
 
-
 /*!
  Refreshes the client state. Retrieves info about whether the user has an
- account (vs tracker), balance, valid token types. It also retrieves purchase
- prices, as specified by the purchaseClasses param.
+ account (vs tracker), balance, valid token types, and purchase prices.
 
- If there are no tokens stored locally (e.g., if this is the first run), then new
- tracker tokens will obtained.
+ Input parameters:
 
- If isAccount is true, then it is possible that not all expected tokens will be
- returned valid (they expire at different rates). Login may be necessary
- before spending, etc. (It's even possible that validTokenTypes is empty --
- i.e., there are no valid tokens.)
+ • purchaseClasses: The purchase class names for which prices should be retrieved,
+   like `@["speed-boost"]`. If nil or empty, no purchase prices will be retrieved.
 
- If there is no valid indicator token, then balance and purchasePrices will be nil.
+ Completion handler parameters:
 
- If error is non-nil, the request failed utterly and no other params are valid.
+ • serverTimeDiff: Indicates the difference between the server time and the local
+   time. (Positive if the server time is ahead, negative if behind.)
 
- validTokenTypes will contain the available valid token types, like:
- @code ["earner", "indicator", "spender"] @endcode
+ • validTokenTypes: Will contain the available valid token types, like:
+   @code ["earner", "indicator", "spender"] @endcode
 
- isAccount will be true if the tokens belong to an Account or false if a Tracker.
+   If there are no tokens stored locally (e.g., if this is the first run), then
+   new tracker tokens will obtained.
 
- purchasePrices is an array of PsiCashPurchasePrice objects. May be emtpy if no
- transaction types of the given class(es) are found.
+   If isAccount is true, then it is possible that not all expected tokens will be
+   returned valid (they expire at different rates). Login may be necessary
+   before spending, etc. (It's even possible that validTokenTypes is empty --
+   i.e., there are no valid tokens.)
+
+   If there is no valid indicator token, then balance and purchasePrices will be nil.
+
+ • isAccount: Will be true if the tokens belong to an Account or false if a Tracker.
+
+ • balance: The current balance of the user (tracker or account). Nil if there is
+   no valid indicator token.
+
+ • purchasePrices: An array of PsiCashPurchasePrice objects. May be emtpy if no
+   transaction types of the given class(es) are found, or no classes where provided.
+   Nil if there is no valid indicator token.
+
+ • error: If non-nil, the request failed utterly and no other params are valid.
 
  Possible status codes:
 
  • PsiCashStatus_Success
 
- • PsiCashStatus_ServerError
+ • PsiCashStatus_ServerError: The server returned 500 error response. Note that
+   the request has already been retried internally and any further retry should
+   not be immediate.
 
- • PsiCashStatus_Invalid: error will be non-nil.
+ • PsiCashStatus_Invalid: Error will be non-nil. This indicates that the server
+   was totally unreachable or some other unrecoverable error occurred.
 
- • PsiCashStatus_InvalidTokens: Should never happen. The local user ID will be cleared.
-
+ • PsiCashStatus_InvalidTokens: Should never happen (indicates something like
+   local storage corruption). The local user ID will be cleared.
  */
 - (void)refreshState:(NSArray*_Nonnull)purchaseClasses
       withCompletion:(void (^_Nonnull)(PsiCashStatus status,
+                                       NSTimeInterval serverTimeDiff,
                                        NSArray*_Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber*_Nullable balance,
                                        NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
                                        NSError*_Nullable error))completionHandler;
 
-
 /*!
  Makes a new transaction for an "expiring-purchase" class, such as "speed-boost".
- The validity of completion params varies with status and input. Here are the
- meanings of the params:
+
+ Input parameters:
+
+ • transactionClass: The class name of the desired purchase. (Like "speed-boost".)
+
+ • transactionDistinguisher: The distinguisher for the desired purchase. (Like "1hr".)
+
+ • expectedPrice: The expected price of the purchase (previously obtained by refreshState).
+   The transaction will fail if the expectedPrice does not match the actual price.
+
+Completion handler parameters:
 
  • status: Indicates whether the request succeeded or which failure condition occurred.
 
- • price: Indicates the price of the purchase. In success cases, will match the expectedPrice input.
+ • serverTimeDiff: Indicates the difference between the server time and the local
+   time. (Positive if the server time is ahead, negative if behind.)
+
+ • price: Indicates the price of the purchase. In success cases, will match the
+   expectedPrice input. Nil if indicator token was not provided.
 
  • balance: The user's balance, newly updated if a successful purchase occurred.
+   Nil if indicator token was not provided.
 
- • expiry: When the purchase is valid until.
+ • expiry: When the purchase is valid until, in server time.
 
- • authorization: The purchase authorization, if applicable to the purchase class (i.e., "speed-boost").
+ • authorization: The purchase authorization, if applicable to the purchase class
+   (i.e., "speed-boost"). Nil if not applicable.
 
- If error is non-nil, the request failed utterly and no other params are valid.
+ • error: If non-nil, the request failed utterly and no other params are valid.
 
  Possible status codes:
 
- • PsiCashStatus_Success: The purchase transaction was successful. price, balance,
- and expiry will be valid. authorization will be valid if applicable.
+ • PsiCashStatus_Success: The purchase transaction was successful. All completion
+   handler arguments will be valid (authorization only if applicable).
 
  • PsiCashStatus_ExistingTransaction: There is already a non-expired purchase that
- prevents this purchase from proceeding. price and balance will be valid.
- expiry will be valid and will be set to the expiry of the existing purchase.
+   prevents this purchase from proceeding. serverTimeDiff, price, and balance
+   will be valid. expiry will be valid and will be set to the expiry of the existing
+   purchase. This status suggests that a purchase retrieval is necessary (because
+   an outstanding purchase is no known locally).
 
  • PsiCashStatus_InsufficientBalance: The user does not have sufficient Psi to make
- the requested purchase. price and balance are valid.
+   the requested purchase. serverTimeDiff, price, and balance are valid.
 
  • PsiCashStatus_TransactionAmountMismatch: The actual purchase price does not match
- expectedPrice, so the purchase cannot proceed. The price list should be updated
- immediately. price and balance are valid.
+   expectedPrice, so the purchase cannot proceed. The price list should be updated
+   immediately. serverTimeDiff, price, and balance are valid.
 
  • PsiCashStatus_TransactionTypeNotFound: A transaction type with the given class and
- distinguisher could not be found. The price list should be updated immediately,
- but it might also indicate an out-of-date app.
+   distinguisher could not be found. The price list should be updated immediately,
+   but it might also indicate an out-of-date app.
 
  • PsiCashStatus_InvalidTokens: The current auth tokens are invalid.
- TODO: Figure out how to handle this. It shouldn't be a factor for Trackers or MVP.
+   TODO: Figure out how to handle this. It shouldn't be a factor for Trackers or MVP.
 
- • PsiCashStatus_ServerError: An error occurred on the server. Probably report to the user and
- try again later.
+ • PsiCashStatus_ServerError: An error occurred on the server. Probably report to
+   the user and try again later. Note that the request has already been retried
+   internally and any further retry should not be immediate.
  */
 - (void)newExpiringPurchaseTransactionForClass:(NSString*_Nonnull)transactionClass
                              withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
                              withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
                                 withCompletion:(void (^_Nonnull)(PsiCashStatus status,
+                                                                 NSTimeInterval serverTimeDiff,
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable expiry,
