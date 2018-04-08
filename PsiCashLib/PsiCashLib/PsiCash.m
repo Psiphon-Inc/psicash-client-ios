@@ -825,11 +825,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                  // Back off per attempt.
                  dispatch_time_t retryTime = dispatch_time(DISPATCH_TIME_NOW, (REQUEST_RETRY_LIMIT-remainingRetries) * NSEC_PER_SEC);
 
-                 NSLog(@"doRequestWithRetry: Waiting for retry; remainingRetries:%lu", (unsigned long)remainingRetries); // DEBUG
-
                  dispatch_after(retryTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^{
-                     NSLog(@"doRequestWithRetry: Retrying"); // DEBUG
-
                      // Recursive retry.
                      [weakSelf doRequestWithRetryHelper:request
                                                useCache:useCache
