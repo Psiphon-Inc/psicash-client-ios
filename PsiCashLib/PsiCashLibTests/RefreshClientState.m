@@ -13,7 +13,9 @@
 
 @end
 
-@implementation RefreshClientStateTests
+@implementation RefreshClientStateTests {
+    NSNumber *mutatorsEnabled;
+}
 
 @synthesize psiCash;
 
@@ -22,6 +24,15 @@
     // Put setup code here. This method is called before the invocation of each test method in the class.
 
     psiCash = [[PsiCash alloc] init];
+
+    if (mutatorsEnabled == nil) {
+        XCTestExpectation *expMutatorsEnabled = [self expectationWithDescription:@"Check if mutators enabled"];
+        [TestHelpers checkMutatorSupport:psiCash completion:^(BOOL supported) {
+            self->mutatorsEnabled = [NSNumber numberWithBool:supported];
+            [expMutatorsEnabled fulfill];
+        }];
+        [self waitForExpectationsWithTimeout:100 handler:nil];
+    }
 }
 
 - (void)tearDown {
@@ -323,6 +334,10 @@
 }
 
 - (void)testIsAccountInvalidTokens {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Successs: is-account with tokens but none valid"];
 
     NSArray *purchaseClasses =  @[];
@@ -380,6 +395,10 @@
 }
 
 - (void)testNewTrackerWithInvalidTokens {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: new tracker with initially invalid tokens"];
 
     NSArray *purchaseClasses =  @[]; // not relevant to this test
@@ -432,6 +451,10 @@
 }
 
 - (void)testNewTrackerWithAlwaysInvalidTokens {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Failure: new tracker with always invalid tokens"];
 
@@ -484,6 +507,10 @@
 }
 
 - (void)testNoServerResponseNewTracker {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: no response from NewTracker"];
 
     NSArray *purchaseClasses =  @[]; // not relevant to this test
@@ -513,6 +540,10 @@
 }
 
 - (void)testNoServerResponseRefreshState {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: no response from RefreshState"];
 
     NSArray *purchaseClasses =  @[]; // not relevant to this test
@@ -561,6 +592,10 @@
 }
 
 - (void)testNoDataNewTracker {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: no data in response from NewTracker"];
 
@@ -592,6 +627,10 @@
 }
 
 - (void)testNoDataRefreshState {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: no data in response from RefreshState"];
 
@@ -638,6 +677,10 @@
 }
 
 - (void)testBadJSONNewTracker {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: invalid JSON data in response from NewTracker"];
 
@@ -669,6 +712,10 @@
 }
 
 - (void)testBadJSONRefreshState {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: invalid JSON data in response from RefreshState"];
 
@@ -717,6 +764,10 @@
 }
 
 - (void)testServer500NewTracker {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: 500 response from NewTracker"];
 
@@ -747,6 +798,10 @@
 }
 
 - (void)testServer500RefreshState {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: 500 response from RefreshState"];
 
@@ -795,6 +850,10 @@
 }
 
 - (void)testServerUnknownCodeNewTracker {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: unknown response code from NewTracker"];
 
@@ -825,6 +884,10 @@
 }
 
 - (void)testServerUnknownCodeRefreshState {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     // This shouldn't happen with a well-behaved server, but tests a catastrophic code path.
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: unknown response code from RefreshState"];
 

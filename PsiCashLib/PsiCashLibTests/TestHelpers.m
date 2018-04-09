@@ -91,6 +91,36 @@ int requestMutatorsIndex;
     [psiCash setRequestMutators:mutators];
 }
 
++ (void)checkMutatorSupport:(PsiCash*_Nonnull)psiCash
+                 completion:(void (^_Nonnull)(BOOL supported))completionHandler
+{
+    [TestHelpers setRequestMutators:psiCash
+                           mutators:@[@"CheckEnabled"]];  // sleep for 11 secs
+
+    NSMutableURLRequest *request = [psiCash createRequestFor:@"/refresh-state"
+                                                  withMethod:@"GET"
+                                              withQueryItems:nil
+                                           includeAuthTokens:NO];
+
+    NSURLSession *session = [NSURLSession sharedSession];
+
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
+                                            completionHandler:
+                                  ^(NSData *data, NSURLResponse *response, NSError *error)
+                                  {
+                                      if (error) {
+                                          NSLog(@"checkMutatorSupport error: %@", error);
+                                          completionHandler(NO);
+                                          return;
+                                      }
+
+                                      NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse*)response;
+
+                                      completionHandler(httpResponse.statusCode == kHTTPStatusAccepted);
+                                  }];
+    [task resume];
+}
+
 + (void)make1TRewardRequest:(PsiCash*_Nonnull)psiCash
                  completion:(void (^_Nonnull)(BOOL success))completionHandler
 {

@@ -15,7 +15,9 @@
 
 @end
 
-@implementation NewTransactionTests
+@implementation NewTransactionTests {
+    NSNumber *mutatorsEnabled;
+}
 
 @synthesize psiCash;
 
@@ -24,6 +26,14 @@
     // Put setup code here. This method is called before the invocation of each test method in the class.
 
     psiCash = [[PsiCash alloc] init];
+
+    if (mutatorsEnabled == nil) {
+        XCTestExpectation *expMutatorsEnabled = [self expectationWithDescription:@"Check if mutators enabled"];
+        [TestHelpers checkMutatorSupport:psiCash completion:^(BOOL supported) {
+            self->mutatorsEnabled = [NSNumber numberWithBool:supported];
+            [expMutatorsEnabled fulfill];
+        }];
+    }
 
     XCTestExpectation *exp = [self expectationWithDescription:@"Init tokens"];
 
@@ -257,6 +267,10 @@
 }
 
 - (void)testInvalidTokens {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Failure: invalid tokens"];
 
     [TestHelpers setRequestMutators:self->psiCash
@@ -287,6 +301,10 @@
 }
 
 - (void)testNoServerResponse {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: no response from server"];
 
     [TestHelpers setRequestMutators:self->psiCash
@@ -314,6 +332,10 @@
 
 
 - (void)testNoData {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: no data in response from server"];
 
     [TestHelpers setRequestMutators:self->psiCash
@@ -340,6 +362,10 @@
 }
 
 - (void)testBadJSON {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: invalid JSON in response from server"];
 
     [TestHelpers setRequestMutators:self->psiCash
@@ -366,6 +392,10 @@
 }
 
 - (void)testServer500 {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: 500 response from server"];
 
     [TestHelpers setRequestMutators:self->psiCash
@@ -392,6 +422,10 @@
 }
 
 - (void)testServerUnknownCode {
+    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+        return;
+    }
+
     XCTestExpectation *exp = [self expectationWithDescription:@"Error: unknown response code from server"];
 
     [TestHelpers setRequestMutators:self->psiCash

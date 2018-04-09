@@ -26,6 +26,9 @@
 + (void)setRequestMutators:(PsiCash*_Nonnull)psiCash
                   mutators:(NSArray*_Nonnull)mutators;
 
++ (void)checkMutatorSupport:(PsiCash*_Nonnull)psiCash
+                 completion:(void (^_Nonnull)(BOOL supported))completionHandler;
+
 + (void)make1TRewardRequest:(PsiCash*_Nonnull)psiCash
                  completion:(void (^_Nonnull)(BOOL success))completionHandler;
 
