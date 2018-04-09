@@ -334,7 +334,7 @@
 }
 
 - (void)testIsAccountInvalidTokens {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -395,7 +395,7 @@
 }
 
 - (void)testNewTrackerWithInvalidTokens {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -451,7 +451,7 @@
 }
 
 - (void)testNewTrackerWithAlwaysInvalidTokens {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -507,7 +507,7 @@
 }
 
 - (void)testNoServerResponseNewTracker {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -540,7 +540,7 @@
 }
 
 - (void)testNoServerResponseRefreshState {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -592,7 +592,7 @@
 }
 
 - (void)testNoDataNewTracker {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -627,7 +627,7 @@
 }
 
 - (void)testNoDataRefreshState {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -677,7 +677,7 @@
 }
 
 - (void)testBadJSONNewTracker {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -712,7 +712,7 @@
 }
 
 - (void)testBadJSONRefreshState {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -764,7 +764,7 @@
 }
 
 - (void)testServer500NewTracker {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -798,7 +798,7 @@
 }
 
 - (void)testServer500RefreshState {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -850,7 +850,7 @@
 }
 
 - (void)testServerUnknownCodeNewTracker {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -884,7 +884,7 @@
 }
 
 - (void)testServerUnknownCodeRefreshState {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 

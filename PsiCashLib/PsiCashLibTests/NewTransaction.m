@@ -267,7 +267,7 @@
 }
 
 - (void)testInvalidTokens {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -301,7 +301,7 @@
 }
 
 - (void)testNoServerResponse {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -332,7 +332,7 @@
 
 
 - (void)testNoData {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -362,7 +362,7 @@
 }
 
 - (void)testBadJSON {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -392,7 +392,7 @@
 }
 
 - (void)testServer500 {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
@@ -422,7 +422,7 @@
 }
 
 - (void)testServerUnknownCode {
-    if (!self->mutatorsEnabled || ![self->mutatorsEnabled boolValue]) {
+    if (![self->mutatorsEnabled boolValue]) {
         return;
     }
 
