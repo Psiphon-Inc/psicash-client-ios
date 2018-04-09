@@ -21,7 +21,7 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 } NS_ENUM_AVAILABLE_IOS(6_0);
 
 
-@interface PsiCashPurchasePrice : NSObject
+@interface PsiCashPurchasePrice : NSObject <NSCoding>
 @property NSString*_Nonnull transactionClass;
 @property NSString*_Nonnull distinguisher;
 @property NSNumber*_Nonnull price;
@@ -35,6 +35,19 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 @interface PsiCash : NSObject
 
 - (id _Nonnull)init;
+
+/*! Returns the stored valid token types. Like ["spender", "indicator"]. May be
+ nil or empty. */
+- (NSArray*_Nullable)validTokenTypes;
+//! Returns the stored info about whether the user is a tracker or an account.
+- (BOOL)isAccount;
+//! Returns the stored user balance. May be nil.
+- (NSNumber*_Nullable)balance;
+//! Returns the stored purchase prices. May be nil.
+- (NSArray*_Nullable)purchasePrices;
+/*! Returns the stored difference between the server time and the local time.
+ (Positive if the server time is ahead, negative if behind.) */
+- (NSTimeInterval)serverTimeDiff;
 
 /*!
  Refreshes the client state. Retrieves info about whether the user has an

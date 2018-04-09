@@ -2,9 +2,6 @@
 //  HTTPStatusCodes.h
 //  PsiCashLib
 //
-//  Created by Adam Pritchard on 2018-03-08.
-//  Copyright © 2018 Adam Pritchard. All rights reserved.
-//
 
 #ifndef HTTPStatusCodes_h
 #define HTTPStatusCodes_h

@@ -2,9 +2,6 @@
 //  HTTPStatusCodes.m
 //  PsiCashLib
 //
-//  Created by Adam Pritchard on 2018-03-10.
-//  Copyright © 2018 Adam Pritchard. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 

@@ -105,6 +105,10 @@
                   // Our test class doesn't produce an authorization
                   XCTAssertNil(authorization);
 
+                  XCTAssertGreaterThan([[self->psiCash validTokenTypes] count], 0);
+                  XCTAssertEqual([self->psiCash balance], balance);
+                  XCTAssertEqual([self->psiCash serverTimeDiff], serverTimeDiff);
+
                   [exp fulfill];
               }];
          }];

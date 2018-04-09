@@ -44,7 +44,7 @@
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: new tracker"];
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     NSArray *purchaseClasses =  @[@"speed-boost"];
 
@@ -73,14 +73,20 @@
          XCTAssertNotNil(purchasePrices);
          XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
 
+         XCTAssertGreaterThan([[self->psiCash validTokenTypes] count], 0);
+         XCTAssertFalse([self->psiCash isAccount]);
+         XCTAssertEqual([self->psiCash balance], balance);
+         XCTAssertEqual([self->psiCash serverTimeDiff], serverTimeDiff);
+         XCTAssert([[self->psiCash purchasePrices] isEqualToArray:purchasePrices]);
+
          [exp fulfill];
      }];
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
 }
 
-- (void)testExistingTracker {
-    XCTestExpectation *exp = [self expectationWithDescription:@"Success: existing tracker"];
+- (void)testExistingUser {
+    XCTestExpectation *exp = [self expectationWithDescription:@"Success: existing user"];
 
     NSArray *purchaseClasses =  @[@"speed-boost"];
 
@@ -131,6 +137,11 @@
 
               XCTAssertNotNil(purchasePrices);
               XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
+
+              XCTAssertGreaterThan([[self->psiCash validTokenTypes] count], 0);
+              XCTAssertEqual([self->psiCash balance], balance);
+              XCTAssertEqual([self->psiCash serverTimeDiff], serverTimeDiff);
+              XCTAssert([[self->psiCash purchasePrices] isEqualToArray:purchasePrices]);
 
               [exp fulfill];
           }];
@@ -286,7 +297,7 @@
          XCTAssertNotNil(error);
          XCTAssertEqual(status, PsiCashStatus_Invalid);
 
-         [TestHelpers clearUserID:self->psiCash];
+         [TestHelpers clearUserInfo:self->psiCash];
 
          [exp fulfill];
      }];
@@ -298,7 +309,7 @@
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: account with no tokens"];
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:self->psiCash];
+    [TestHelpers clearUserInfo:self->psiCash];
     // Force user state to is-account
     [TestHelpers setIsAccount:self->psiCash];
 
@@ -325,7 +336,7 @@
 
          XCTAssertNil(purchasePrices);
 
-         [TestHelpers clearUserID:self->psiCash];
+         [TestHelpers clearUserInfo:self->psiCash];
 
          [exp fulfill];
      }];
@@ -343,7 +354,7 @@
     NSArray *purchaseClasses =  @[];
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:self->psiCash];
+    [TestHelpers clearUserInfo:self->psiCash];
 
     // First get some valid tokens.
     [self->psiCash refreshState:purchaseClasses
@@ -385,7 +396,7 @@
 
               XCTAssertNil(purchasePrices);
 
-              [TestHelpers clearUserID:self->psiCash];
+              [TestHelpers clearUserInfo:self->psiCash];
 
               [exp fulfill];
           }];
@@ -404,7 +415,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:self->psiCash];
+    [TestHelpers clearUserInfo:self->psiCash];
 
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
@@ -461,7 +472,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
@@ -516,7 +527,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens to force internal NewTracker.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     [TestHelpers setRequestMutators:self->psiCash
                            mutators:@[@"Timeout:11"]];  // NewTracker, sleep for 11 secs
@@ -549,7 +560,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
@@ -602,7 +613,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens to force internal NewTracker.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     // Add a request mutator that will cause no response body.
     [TestHelpers setRequestMutators:self->psiCash
@@ -637,7 +648,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
@@ -686,7 +697,7 @@
 
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     // Add a request mutator that will cause invalid JSON in the response.
     [TestHelpers setRequestMutators:self->psiCash
@@ -722,7 +733,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
@@ -774,7 +785,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens to force internal NewTracker.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     [TestHelpers setRequestMutators:self->psiCash
                            mutators:@[@"Response:code=500"]];  // NewTracker
@@ -808,7 +819,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
@@ -860,7 +871,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens to force internal NewTracker.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     [TestHelpers setRequestMutators:self->psiCash
                            mutators:@[@"Response:code=666"]];  // NewTracker
@@ -894,7 +905,7 @@
     NSArray *purchaseClasses =  @[]; // not relevant to this test
 
     // Blow away any existing tokens.
-    [TestHelpers clearUserID:psiCash];
+    [TestHelpers clearUserInfo:psiCash];
 
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses

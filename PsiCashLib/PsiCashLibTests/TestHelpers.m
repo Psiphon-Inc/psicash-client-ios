@@ -2,13 +2,10 @@
 //  TestHelpers.m
 //  PsiCashLibTests
 //
-//  Created by Adam Pritchard on 2018-03-10.
-//  Copyright © 2018 Adam Pritchard. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 #import "TestHelpers.h"
-#import "UserIdentity.h"
+#import "UserInfo.h"
 #import "HTTPStatusCodes.h"
 
 // Expose some private methods to help with testing
@@ -24,7 +21,7 @@
                                              NSHTTPURLResponse*_Nullable response,
                                              NSError*_Nullable error))completionHandler;
 
-- (void)clearUserID;
+- (void)clearUserInfo;
 
 - (void)setRequestMutators:(NSArray*)mutators;
 - (void)clearRequestMutators;
@@ -70,19 +67,19 @@ int requestMutatorsIndex;
 
 @implementation TestHelpers
 
-+ (void)clearUserID:(PsiCash*_Nonnull)psiCash
++ (void)clearUserInfo:(PsiCash*_Nonnull)psiCash
 {
-    [[psiCash valueForKey:@"userID"] clear];
+    [[psiCash valueForKey:@"userInfo"] clear];
 }
 
 + (void)setIsAccount:(PsiCash*_Nonnull)psiCash
 {
-    [[psiCash valueForKey:@"userID"] setIsAccount:YES];
+    [[psiCash valueForKey:@"userInfo"] setIsAccount:YES];
 }
 
 + (NSDictionary*)getAuthTokens:(PsiCash*_Nonnull)psiCash
 {
-    return [[psiCash valueForKey:@"userID"] authTokens];
+    return [[psiCash valueForKey:@"userInfo"] authTokens];
 }
 
 + (void)setRequestMutators:(PsiCash*_Nonnull)psiCash

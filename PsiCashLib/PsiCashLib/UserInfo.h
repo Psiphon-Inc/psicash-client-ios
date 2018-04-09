@@ -1,19 +1,23 @@
 //
-//  AuthTokens.h
+//  UserInfo.h
 //  PsiCashLib
 //
-//  Created by Adam Pritchard on 2018-03-05.
-//  Copyright © 2018 Adam Pritchard. All rights reserved.
+
+#ifndef UserInfo_h
+#define UserInfo_h
+
+//
+// Stores persistent info about the user.
 //
 
-#ifndef AuthTokens_h
-#define AuthTokens_h
-
-@interface UserIdentity : NSObject
+@interface UserInfo : NSObject
 
 //! authTokens maps token type to value.
 @property (readonly) NSDictionary *authTokens;
 @property BOOL isAccount;
+@property NSNumber *balance;
+@property NSArray *purchasePrices;
+@property NSTimeInterval serverTimeDiff;
 
 - (id)init;
 
@@ -25,4 +29,4 @@
 
 @end
 
-#endif /* AuthTokens_h */
+#endif /* UserInfo_h */

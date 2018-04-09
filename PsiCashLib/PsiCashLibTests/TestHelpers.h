@@ -2,9 +2,6 @@
 //  TestHelpers.h
 //  PsiCashLib
 //
-//  Created by Adam Pritchard on 2018-03-10.
-//  Copyright © 2018 Adam Pritchard. All rights reserved.
-//
 
 #ifndef TestHelpers_h
 #define TestHelpers_h
@@ -15,7 +12,7 @@
 @interface TestHelpers : NSObject
 
 //! Clears user tokens, etc.
-+ (void)clearUserID:(PsiCash*_Nonnull)psiCash;
++ (void)clearUserInfo:(PsiCash*_Nonnull)psiCash;
 
 //! Set the user as an account. (Note that this messes up state.)
 + (void)setIsAccount:(PsiCash*_Nonnull)psiCash;

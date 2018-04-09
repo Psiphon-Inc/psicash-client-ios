@@ -2,9 +2,6 @@
 //  PsiCashLibTests.m
 //  PsiCashLibTests
 //
-//  Created by Adam Pritchard on 2018-03-04.
-//  Copyright © 2018 Adam Pritchard. All rights reserved.
-//
 
 #import <XCTest/XCTest.h>
 
