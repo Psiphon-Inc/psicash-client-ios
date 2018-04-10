@@ -179,6 +179,7 @@ Completion handler parameters:
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable expiry,
+                                                                 NSString*_Nullable transactionID,
                                                                  NSString*_Nullable authorization,
                                                                  NSError*_Nullable error))completion;
 

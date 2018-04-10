@@ -561,6 +561,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable expiry,
+                                                                 NSString*_Nullable transactionID,
                                                                  NSString*_Nullable authorization,
                                                                  NSError*_Nullable error))completionHandler
 {
@@ -586,14 +587,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_Invalid, self->userInfo.serverTimeDiff, nil, nil, nil, nil, error);
+                 completionHandler(PsiCashStatus_Invalid, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil, error);
              });
              return;
          }
 
          NSNumber *price, *balance;
          NSDate *expiry;
-         NSString *authorization;
+         NSString *transactionID, *authorization;
 
          if (response.statusCode == kHTTPStatusOK ||
              response.statusCode == kHTTPStatusTooManyRequests ||
@@ -602,7 +603,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              if (!data || data.length == 0) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
                  dispatch_async(self->completionQueue, ^{
-                     completionHandler(PsiCashStatus_Invalid, self->userInfo.serverTimeDiff, nil, nil, nil, nil, error);
+                     completionHandler(PsiCashStatus_Invalid, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil, error);
                  });
                  return;
              }
@@ -613,12 +614,13 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                                 transactionAmount:&transactionAmount
                                           balance:&balance
                                            expiry:&expiry
+                                    transactionID:&transactionID
                                     authorization:&authorization
                                         withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
                  dispatch_async(self->completionQueue, ^{
-                     completionHandler(PsiCashStatus_Invalid, self->userInfo.serverTimeDiff, nil, nil, nil, nil, error);
+                     completionHandler(PsiCashStatus_Invalid, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil, error);
                  });
                  return;
              }
@@ -630,43 +632,43 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
          if (response.statusCode == kHTTPStatusOK) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_Success, self->userInfo.serverTimeDiff, price, balance, expiry, authorization, nil);
+                 completionHandler(PsiCashStatus_Success, self->userInfo.serverTimeDiff, price, balance, expiry, transactionID, authorization, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusTooManyRequests) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_ExistingTransaction, self->userInfo.serverTimeDiff, price, balance, expiry, nil, nil);
+                 completionHandler(PsiCashStatus_ExistingTransaction, self->userInfo.serverTimeDiff, price, balance, expiry, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusPaymentRequired) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_InsufficientBalance, self->userInfo.serverTimeDiff, price, balance, nil, nil, nil);
+                 completionHandler(PsiCashStatus_InsufficientBalance, self->userInfo.serverTimeDiff, price, balance, nil, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusConflict) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_TransactionAmountMismatch, self->userInfo.serverTimeDiff, price, balance, nil, nil, nil);
+                 completionHandler(PsiCashStatus_TransactionAmountMismatch, self->userInfo.serverTimeDiff, price, balance, nil, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusNotFound) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_TransactionTypeNotFound, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_TransactionTypeNotFound, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusUnauthorized) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_InvalidTokens, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_InvalidTokens, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_ServerError, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_ServerError, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil, nil);
              });
              return;
          }
@@ -674,7 +676,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_Invalid, self->userInfo.serverTimeDiff, nil, nil, nil, nil, error);
+                 completionHandler(PsiCashStatus_Invalid, self->userInfo.serverTimeDiff, nil, nil, nil, nil, nil, error);
              });
              return;
          }
@@ -685,6 +687,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                   transactionAmount:(NSNumber**)transactionAmount
                             balance:(NSNumber**)balance
                              expiry:(NSDate**)expiry
+                      transactionID:(NSString**)transactionID
                       authorization:(NSString**)authorization
                           withError:(NSError**)error
 {
@@ -692,6 +695,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     *balance = nil;
     *transactionAmount = nil;
     *expiry = nil;
+    *transactionID = nil;
     *authorization = nil;
 
     id object = [NSJSONSerialization
@@ -727,6 +731,14 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
             return;
         }
         *balance = data[@"Balance"];
+    }
+
+    if (data[@"TransactionID"] != nil && data[@"TransactionID"] != [NSNull null]) {
+        if (![data[@"TransactionID"] isKindOfClass:NSString.class]) {
+            *error = [NSError errorWithMessage:@"TransactionID is not a string" fromFunction:__FUNCTION__];
+            return;
+        }
+        *transactionID = data[@"TransactionID"];
     }
 
     if (data[@"Authorization"] != nil && data[@"Authorization"] != [NSNull null]) {

@@ -88,6 +88,7 @@
                                                                      NSNumber*_Nullable price,
                                                                      NSNumber*_Nullable balance,
                                                                      NSDate*_Nullable expiry,
+                                                                     NSString*_Nullable transactionID,
                                                                      NSString*_Nullable authorization,
                                                                      NSError*_Nullable error)
               {
@@ -101,6 +102,8 @@
                   NSDate *now = [NSDate dateWithTimeIntervalSinceNow:0];
                   // Check that the expiry is within 2 seconds of now.
                   XCTAssertLessThan(fabs([expiry timeIntervalSinceDate:now]), 2.0);
+
+                  XCTAssertNotNil(transactionID);
 
                   // Our test class doesn't produce an authorization
                   XCTAssertNil(authorization);
@@ -140,6 +143,7 @@
                                                                 NSNumber*_Nullable price,
                                                                 NSNumber*_Nullable balance,
                                                                 NSDate*_Nullable expiry,
+                                                                NSString*_Nullable transactionID,
                                                                 NSString*_Nullable authorization,
                                                                 NSError*_Nullable error)
          {
@@ -148,6 +152,7 @@
              XCTAssertEqual(price.integerValue, TEST_INT64_MAX);
              XCTAssertEqual(balance, prePurchaseBalance);
              XCTAssertNil(expiry);
+             XCTAssertNil(transactionID);
              XCTAssertNil(authorization);
 
              [exp fulfill];
@@ -175,6 +180,7 @@
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable successfulExpiry,
+                                                                 NSString*_Nullable transactionID,
                                                                  NSString*_Nullable authorization,
                                                                  NSError*_Nullable error)
           {
@@ -182,6 +188,7 @@
               XCTAssertEqual(status, PsiCashStatus_Success); // IF THIS FAILS, WAIT ONE MINUTE AND TRY AGAIN
               XCTAssertEqual(price.integerValue, ONE_TRILLION);
               XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
+              XCTAssertNotNil(transactionID);
               XCTAssertNil(authorization);
               XCTAssertNotNil(successfulExpiry);
 
@@ -197,6 +204,7 @@
                                                                       NSNumber*_Nullable price,
                                                                       NSNumber*_Nullable balance,
                                                                       NSDate*_Nullable expiry,
+                                                                      NSString*_Nullable transactionID,
                                                                       NSString*_Nullable authorization,
                                                                       NSError*_Nullable error)
                {
@@ -204,6 +212,7 @@
                    XCTAssertEqual(status, PsiCashStatus_ExistingTransaction);
                    XCTAssertEqual(price.integerValue, ONE_TRILLION);
                    XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
+                   XCTAssertNil(transactionID);
                    XCTAssertNil(authorization);
 
                    XCTAssert([expiry isEqualToDate:successfulExpiry]);
@@ -227,6 +236,7 @@
                                                       NSNumber*_Nullable price,
                                                       NSNumber*_Nullable balance,
                                                       NSDate*_Nullable expiry,
+                                                      NSString*_Nullable transactionID,
                                                       NSString*_Nullable authorization,
                                                       NSError*_Nullable error)
      {
@@ -235,6 +245,7 @@
          XCTAssertEqual(price.integerValue, TEST_INT64_MAX);
          XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
          XCTAssertNil(expiry);
+         XCTAssertNil(transactionID);
          XCTAssertNil(authorization);
 
          [exp fulfill];
@@ -254,6 +265,7 @@
                                                       NSNumber*_Nullable price,
                                                       NSNumber*_Nullable balance,
                                                       NSDate*_Nullable expiry,
+                                                      NSString*_Nullable transactionID,
                                                       NSString*_Nullable authorization,
                                                       NSError*_Nullable error)
      {
@@ -262,6 +274,7 @@
          XCTAssertNil(price);
          XCTAssertNil(balance);
          XCTAssertNil(expiry);
+         XCTAssertNil(transactionID);
          XCTAssertNil(authorization);
 
          [exp fulfill];
@@ -288,6 +301,7 @@
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
+                                                            NSString*_Nullable transactionID,
                                                             NSString*_Nullable authorization,
                                                             NSError*_Nullable error)
      {
@@ -296,6 +310,7 @@
          XCTAssertNil(price);
          XCTAssertNil(balance);
          XCTAssertNil(expiry);
+         XCTAssertNil(transactionID);
          XCTAssertNil(authorization);
 
          [exp fulfill];
@@ -322,6 +337,7 @@
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
+                                                            NSString*_Nullable transactionID,
                                                             NSString*_Nullable authorization,
                                                             NSError*_Nullable error)
      {
@@ -353,6 +369,7 @@
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
+                                                            NSString*_Nullable transactionID,
                                                             NSString*_Nullable authorization,
                                                             NSError*_Nullable error)
      {
@@ -383,6 +400,7 @@
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
+                                                            NSString*_Nullable transactionID,
                                                             NSString*_Nullable authorization,
                                                             NSError*_Nullable error)
      {
@@ -413,6 +431,7 @@
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
+                                                            NSString*_Nullable transactionID,
                                                             NSString*_Nullable authorization,
                                                             NSError*_Nullable error)
      {
@@ -443,6 +462,7 @@
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
+                                                            NSString*_Nullable transactionID,
                                                             NSString*_Nullable authorization,
                                                             NSError*_Nullable error)
      {
