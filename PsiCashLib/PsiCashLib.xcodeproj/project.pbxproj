@@ -17,7 +17,6 @@
 		6647F99F204CD53100C7457B /* NSError+NSErrorExt.m in Sources */ = {isa = PBXBuildFile; fileRef = 6647F99B204CD53100C7457B /* NSError+NSErrorExt.m */; };
 		66C0139C204D7B4C00F55E04 /* UserInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C0139B204D7B4C00F55E04 /* UserInfo.m */; };
 		66C0139E204D7B7000F55E04 /* UserInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C0139D204D7B7000F55E04 /* UserInfo.h */; };
-		66C013A020519A3100F55E04 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 66C0139F20519A3100F55E04 /* README.md */; };
 		66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */; };
 		66C013AD2054415900F55E04 /* TestHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013AC2054415900F55E04 /* TestHelpers.m */; };
 		66C013B02054497B00F55E04 /* HTTPStatusCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C013AF2054497B00F55E04 /* HTTPStatusCodes.m */; };
@@ -48,7 +47,6 @@
 		6647F99B204CD53100C7457B /* NSError+NSErrorExt.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSError+NSErrorExt.m"; sourceTree = "<group>"; };
 		66C0139B204D7B4C00F55E04 /* UserInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UserInfo.m; sourceTree = "<group>"; };
 		66C0139D204D7B7000F55E04 /* UserInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserInfo.h; sourceTree = "<group>"; };
-		66C0139F20519A3100F55E04 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTTPStatusCodes.h; sourceTree = "<group>"; };
 		66C013AC2054415900F55E04 /* TestHelpers.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TestHelpers.m; sourceTree = "<group>"; };
 		66C013AE2054417000F55E04 /* TestHelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TestHelpers.h; sourceTree = "<group>"; };
@@ -79,7 +77,6 @@
 		6647F974204CD4D100C7457B = {
 			isa = PBXGroup;
 			children = (
-				66C0139F20519A3100F55E04 /* README.md */,
 				6647F980204CD4D100C7457B /* PsiCashLib */,
 				6647F98B204CD4D100C7457B /* PsiCashLibTests */,
 				6647F97F204CD4D100C7457B /* Products */,
@@ -222,7 +219,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				66C013A020519A3100F55E04 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
