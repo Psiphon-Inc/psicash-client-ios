@@ -44,10 +44,16 @@
  - See the note at the bottom of this file about proxy support.
  */
 
-NSString * const PSICASH_SERVER_SCHEME = @"http"; // @"https"; // TODO: https
-NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1"; // TODO: real hostname
-int const PSICASH_SERVER_PORT = 51337; // 443; // TODO: 443
-NSString * const PSICASH_API_VERSION_PATH = @"/v1";
+NSString * const PSICASH_SERVER_SCHEME = @"https";
+NSString * const PSICASH_SERVER_HOSTNAME = @"api.psi.cash";
+int const PSICASH_SERVER_PORT = 443;
+/* Local testing values
+NSString * const PSICASH_SERVER_SCHEME = @"http"; // @"https";
+NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1";
+int const PSICASH_SERVER_PORT = 51337;
+*/
+
+ NSString * const PSICASH_API_VERSION_PATH = @"/v1";
 NSTimeInterval const TIMEOUT_SECS = 10.0;
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 NSString * const PSICASH_USER_AGENT = @"Psiphon-PsiCash-iOS";
