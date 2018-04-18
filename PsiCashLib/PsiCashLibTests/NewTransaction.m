@@ -131,6 +131,8 @@
                   XCTAssertEqual([self->psiCash balance], balance);
                   XCTAssertEqual([self->psiCash serverTimeDiff], serverTimeDiff);
 
+                  XCTAssert([transactionID isEqualToString:[[TestHelpers userInfo:self->psiCash] lastTransactionID]]);
+
                   [exp fulfill];
               }];
          }];
@@ -199,7 +201,7 @@
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable successfulExpiry,
-                                                                 NSString*_Nullable transactionID,
+                                                                 NSString*_Nullable successfulTransactionID,
                                                                  NSString*_Nullable authorization,
                                                                  NSError*_Nullable error)
           {
@@ -207,9 +209,11 @@
               XCTAssertEqual(status, PsiCashStatus_Success); // IF THIS FAILS, WAIT ONE MINUTE AND TRY AGAIN
               XCTAssertEqual(price.integerValue, ONE_TRILLION);
               XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
-              XCTAssertNotNil(transactionID);
+              XCTAssertNotNil(successfulTransactionID);
               XCTAssertNil(authorization);
               XCTAssertNotNil(successfulExpiry);
+
+              XCTAssert([successfulTransactionID isEqualToString:[[TestHelpers userInfo:self->psiCash] lastTransactionID]]);
 
               NSDate *now = [NSDate dateWithTimeIntervalSinceNow:0];
               XCTAssertEqual([successfulExpiry earlierDate:now], now);
@@ -233,6 +237,9 @@
                    XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
                    XCTAssertNil(transactionID);
                    XCTAssertNil(authorization);
+
+                   // Ensure the lastTransactionID hasn't been lost.
+                   XCTAssert([successfulTransactionID isEqualToString:[[TestHelpers userInfo:self->psiCash] lastTransactionID]]);
 
                    XCTAssert([expiry isEqualToDate:successfulExpiry]);
 

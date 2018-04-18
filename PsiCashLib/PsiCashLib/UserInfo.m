@@ -31,6 +31,7 @@ NSString * const ISACCOUNT_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-IsAccount";
 NSString * const BALANCE_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Balance";
 NSString * const PURCHASE_PRICES_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-PurchasePrices";
 NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-ServerTimeDiff";
+NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-LastTransactionID";
 
 
 @implementation UserInfo {
@@ -41,6 +42,7 @@ NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Serv
 @synthesize balance = _balance;
 @synthesize purchasePrices = _purchasePrices;
 @synthesize serverTimeDiff = _serverTimeDiff;
+@synthesize lastTransactionID = _lastTransactionID;
 
 - (id)init
 {
@@ -51,6 +53,7 @@ NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Serv
     self->_balance = [defaults objectForKey:BALANCE_DEFAULTS_KEY];
     self->_purchasePrices = [NSKeyedUnarchiver unarchiveObjectWithData:[defaults objectForKey:PURCHASE_PRICES_DEFAULTS_KEY]];
     self->_serverTimeDiff = [defaults doubleForKey:SERVER_TIME_DIFF_DEFAULTS_KEY];
+    self->_lastTransactionID = [defaults stringForKey:LAST_TRANSACTION_ID_DEFAULTS_KEY];
 
     return self;
 }
@@ -64,10 +67,11 @@ NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Serv
         self.balance = @0;
         self.purchasePrices = @[];
         self.serverTimeDiff = 0.0;
+        self.lastTransactionID = nil;
     }
 }
 
-- (void)setAuthTokens:(NSDictionary *)authTokens isAccount:(BOOL)isAccount
+- (void)setAuthTokens:(NSDictionary*)authTokens isAccount:(BOOL)isAccount
 {
     @synchronized(self)
     {
@@ -127,7 +131,7 @@ NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Serv
     }
 }
 
-- (NSNumber *)balance
+- (NSNumber*)balance
 {
     NSNumber *retVal;
     @synchronized(self)
@@ -137,7 +141,7 @@ NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Serv
     return retVal;
 }
 
-- (void)setPurchasePrices:(NSArray *)purchasePrices
+- (void)setPurchasePrices:(NSArray*)purchasePrices
 {
     @synchronized(self)
     {
@@ -147,7 +151,7 @@ NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Serv
     }
 }
 
-- (NSArray *)purchasePrices
+- (NSArray*)purchasePrices
 {
     NSArray *retVal;
     @synchronized(self)
@@ -172,6 +176,25 @@ NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Serv
     @synchronized(self)
     {
         retVal = self->_serverTimeDiff;
+    }
+    return retVal;
+}
+
+- (void)setLastTransactionID:(NSString*)lastTransactionID
+{
+    @synchronized(self)
+    {
+        [[NSUserDefaults standardUserDefaults] setObject:lastTransactionID forKey:LAST_TRANSACTION_ID_DEFAULTS_KEY];
+        self->_lastTransactionID = lastTransactionID;
+    }
+}
+
+- (NSString*)lastTransactionID
+{
+    NSString *retVal;
+    @synchronized(self)
+    {
+        retVal = [self->_lastTransactionID copy];
     }
     return retVal;
 }

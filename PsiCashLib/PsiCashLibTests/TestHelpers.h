@@ -26,9 +26,12 @@
 #define TestHelpers_h
 
 #import <PsiCashLib/PsiCashLib.h>
+#import "UserInfo.h"
 #import "SecretTestValues.h" // This file is in CipherShare
 
 @interface TestHelpers : NSObject
+
++ (UserInfo*_Nonnull)userInfo:(PsiCash*_Nonnull)psiCash;
 
 //! Clears user tokens, etc.
 + (void)clearUserInfo:(PsiCash*_Nonnull)psiCash;

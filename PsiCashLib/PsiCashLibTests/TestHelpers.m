@@ -40,8 +40,6 @@
                                              NSHTTPURLResponse*_Nullable response,
                                              NSError*_Nullable error))completionHandler;
 
-- (void)clearUserInfo;
-
 - (void)setRequestMutators:(NSArray*)mutators;
 - (void)clearRequestMutators;
 - (void)requestMutator:(NSMutableURLRequest*)request;
@@ -86,9 +84,14 @@ int requestMutatorsIndex;
 
 @implementation TestHelpers
 
++ (UserInfo*_Nonnull)userInfo:(PsiCash*_Nonnull)psiCash
+{
+    return [psiCash valueForKey:@"userInfo"];
+}
+
 + (void)clearUserInfo:(PsiCash*_Nonnull)psiCash
 {
-    [[psiCash valueForKey:@"userInfo"] clear];
+    [[TestHelpers userInfo:psiCash] clear];
 }
 
 + (void)setIsAccount:(PsiCash*_Nonnull)psiCash

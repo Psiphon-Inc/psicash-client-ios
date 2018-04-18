@@ -15,6 +15,8 @@
 		6647F99D204CD53100C7457B /* NSError+NSErrorExt.h in Headers */ = {isa = PBXBuildFile; fileRef = 6647F999204CD53100C7457B /* NSError+NSErrorExt.h */; };
 		6647F99E204CD53100C7457B /* PsiCash.h in Headers */ = {isa = PBXBuildFile; fileRef = 6647F99A204CD53100C7457B /* PsiCash.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		6647F99F204CD53100C7457B /* NSError+NSErrorExt.m in Sources */ = {isa = PBXBuildFile; fileRef = 6647F99B204CD53100C7457B /* NSError+NSErrorExt.m */; };
+		6652236C2087A704004B84D1 /* PurchasePrice.m in Sources */ = {isa = PBXBuildFile; fileRef = 6652236B2087A704004B84D1 /* PurchasePrice.m */; };
+		6652236E2087A79B004B84D1 /* PurchasePrice.h in Headers */ = {isa = PBXBuildFile; fileRef = 6652236D2087A712004B84D1 /* PurchasePrice.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		66C0139C204D7B4C00F55E04 /* UserInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C0139B204D7B4C00F55E04 /* UserInfo.m */; };
 		66C0139E204D7B7000F55E04 /* UserInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C0139D204D7B7000F55E04 /* UserInfo.h */; };
 		66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */; };
@@ -45,6 +47,8 @@
 		6647F999204CD53100C7457B /* NSError+NSErrorExt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSError+NSErrorExt.h"; sourceTree = "<group>"; };
 		6647F99A204CD53100C7457B /* PsiCash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PsiCash.h; sourceTree = "<group>"; };
 		6647F99B204CD53100C7457B /* NSError+NSErrorExt.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSError+NSErrorExt.m"; sourceTree = "<group>"; };
+		6652236B2087A704004B84D1 /* PurchasePrice.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PurchasePrice.m; sourceTree = "<group>"; };
+		6652236D2087A712004B84D1 /* PurchasePrice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PurchasePrice.h; sourceTree = "<group>"; };
 		66C0139B204D7B4C00F55E04 /* UserInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UserInfo.m; sourceTree = "<group>"; };
 		66C0139D204D7B7000F55E04 /* UserInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserInfo.h; sourceTree = "<group>"; };
 		66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTTPStatusCodes.h; sourceTree = "<group>"; };
@@ -105,6 +109,8 @@
 				66C0139D204D7B7000F55E04 /* UserInfo.h */,
 				66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */,
 				66C013AF2054497B00F55E04 /* HTTPStatusCodes.m */,
+				6652236B2087A704004B84D1 /* PurchasePrice.m */,
+				6652236D2087A712004B84D1 /* PurchasePrice.h */,
 			);
 			path = PsiCashLib;
 			sourceTree = "<group>";
@@ -132,6 +138,7 @@
 			files = (
 				66C0139E204D7B7000F55E04 /* UserInfo.h in Headers */,
 				6647F99D204CD53100C7457B /* NSError+NSErrorExt.h in Headers */,
+				6652236E2087A79B004B84D1 /* PurchasePrice.h in Headers */,
 				6647F99E204CD53100C7457B /* PsiCash.h in Headers */,
 				6647F98F204CD4D100C7457B /* PsiCashLib.h in Headers */,
 				66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */,
@@ -239,6 +246,7 @@
 				6647F99C204CD53100C7457B /* PsiCash.m in Sources */,
 				6647F99F204CD53100C7457B /* NSError+NSErrorExt.m in Sources */,
 				66C013B02054497B00F55E04 /* HTTPStatusCodes.m in Sources */,
+				6652236C2087A704004B84D1 /* PurchasePrice.m in Sources */,
 				66C0139C204D7B4C00F55E04 /* UserInfo.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

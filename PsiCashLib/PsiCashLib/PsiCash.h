@@ -40,12 +40,6 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 } NS_ENUM_AVAILABLE_IOS(6_0);
 
 
-@interface PsiCashPurchasePrice : NSObject <NSCoding>
-@property NSString*_Nonnull transactionClass;
-@property NSString*_Nonnull distinguisher;
-@property NSNumber*_Nonnull price;
-@end
-
 // NOTE: All completion handlers will be called on a single serial dispatch queue.
 // They will be made asynchronously unless otherwise noted.
 // (If it would be better for the library consumer to provide the queue, we can

@@ -26,6 +26,7 @@
 #import "NSError+NSErrorExt.h"
 #import "UserInfo.h"
 #import "HTTPStatusCodes.h"
+#import "PurchasePrice.h"
 
 /* TODO
  - Consider using NSUbiquitousKeyValueStore instead of NSUserDefaults for
@@ -53,32 +54,11 @@ NSString * const PSICASH_SERVER_HOSTNAME = @"127.0.0.1";
 int const PSICASH_SERVER_PORT = 51337;
 */
 
- NSString * const PSICASH_API_VERSION_PATH = @"/v1";
+NSString * const PSICASH_API_VERSION_PATH = @"/v1";
 NSTimeInterval const TIMEOUT_SECS = 10.0;
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 NSString * const PSICASH_USER_AGENT = @"Psiphon-PsiCash-iOS";
 NSUInteger const REQUEST_RETRY_LIMIT = 2;
-
-@implementation PsiCashPurchasePrice
-- (nullable instancetype)initWithCoder:(nonnull NSCoder *)decoder {
-    self = [super init];
-    if (!self) {
-        return nil;
-    }
-
-    self.transactionClass = [decoder decodeObjectForKey:@"transactionClass"];
-    self.distinguisher = [decoder decodeObjectForKey:@"distinguisher"];
-    self.price = [decoder decodeObjectForKey:@"price"];
-
-    return self;
-}
-
-- (void)encodeWithCoder:(nonnull NSCoder *)encoder {
-    [encoder encodeObject:self.transactionClass forKey:@"transactionClass"];
-    [encoder encodeObject:self.distinguisher forKey:@"distinguisher"];
-    [encoder encodeObject:self.price forKey:@"price"];
-}
-@end
 
 @implementation PsiCash {
     UserInfo *userInfo;
@@ -651,6 +631,10 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              }
 
              self->userInfo.balance = balance;
+
+             if ([transactionID length] > 0) {
+                 self->userInfo.lastTransactionID = transactionID;
+             }
 
              price = @(-transactionAmount.integerValue);
          }

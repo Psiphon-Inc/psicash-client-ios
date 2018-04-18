@@ -18,35 +18,21 @@
  */
 
 //
-//  UserInfo.h
+//  PurchasePrice.h
 //  PsiCashLib
 //
 
-#ifndef UserInfo_h
-#define UserInfo_h
+#ifndef PurchasePrice_h
+#define PurchasePrice_h
 
-//
-// Stores persistent info about the user.
-//
+#import <Foundation/Foundation.h>
 
-@interface UserInfo : NSObject
 
-//! authTokens maps token type to value.
-@property (readonly) NSDictionary *authTokens;
-@property BOOL isAccount;
-@property NSNumber *balance;
-@property NSArray *purchasePrices;
-@property NSTimeInterval serverTimeDiff;
-@property NSString *lastTransactionID;
-
-- (id)init;
-
-//! Clears all user ID state.
-- (void)clear;
-
-- (void)setAuthTokens:(NSDictionary *)authTokens
-                isAccount:(BOOL)isAccount;
-
+@interface PsiCashPurchasePrice : NSObject <NSCoding>
+@property NSString*_Nonnull transactionClass;
+@property NSString*_Nonnull distinguisher;
+@property NSNumber*_Nonnull price;
 @end
 
-#endif /* UserInfo_h */
+
+#endif /* PurchasePrice_h */
