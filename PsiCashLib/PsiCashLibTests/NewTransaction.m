@@ -133,6 +133,12 @@
 
                   XCTAssert([transactionID isEqualToString:[[TestHelpers userInfo:self->psiCash] lastTransactionID]]);
 
+                  XCTAssert([self containsTransactionWithID:transactionID
+                                           transactionClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                              distinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
+                                                     expiry:expiry
+                                              authorization:authorization]);
+
                   [exp fulfill];
               }];
          }];
@@ -214,6 +220,12 @@
               XCTAssertNotNil(successfulExpiry);
 
               XCTAssert([successfulTransactionID isEqualToString:[[TestHelpers userInfo:self->psiCash] lastTransactionID]]);
+
+              XCTAssert([self containsTransactionWithID:successfulTransactionID
+                                       transactionClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                          distinguisher:@TEST_ONE_TRILLION_ONE_MINUTE_DISTINGUISHER
+                                                 expiry:successfulExpiry
+                                          authorization:authorization]);
 
               NSDate *now = [NSDate dateWithTimeIntervalSinceNow:0];
               XCTAssertEqual([successfulExpiry earlierDate:now], now);
@@ -499,6 +511,30 @@
      }];
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
+}
+
+- (BOOL)containsTransactionWithID:(NSString*_Nonnull)ID
+                 transactionClass:(NSString*_Nonnull)transactionClass
+                       distinguisher:(NSString*_Nonnull)distinguisher
+                              expiry:(NSDate*_Nullable)expiry
+                       authorization:(NSString*_Nullable)authorization
+{
+    NSArray *purchases = [[TestHelpers userInfo:self->psiCash] purchases];
+    if ([purchases count] == 0) {
+        return NO;
+    }
+
+    for (PsiCashPurchase *purchase in purchases) {
+        if ([TestHelpers is:purchase.ID equalTo:ID] &&
+            [TestHelpers is:purchase.transactionClass equalTo:transactionClass] &&
+            [TestHelpers is:purchase.distinguisher equalTo:distinguisher] &&
+            [TestHelpers is:purchase.expiry equalTo:expiry] &&
+            [TestHelpers is:purchase.authorization equalTo:authorization]) {
+            return YES;
+        }
+    }
+
+    return NO;
 }
 
 @end

@@ -51,6 +51,9 @@
 + (void)make1TRewardRequest:(PsiCash*_Nonnull)psiCash
                  completion:(void (^_Nonnull)(BOOL success))completionHandler;
 
+//! Equality test with nil support
++ (BOOL)is:(id)a equalTo:(id)b;
+
 @end
 
 

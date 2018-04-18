@@ -632,14 +632,16 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
              self->userInfo.balance = balance;
 
-             if ([transactionID length] > 0) {
-                 self->userInfo.lastTransactionID = transactionID;
-             }
-
              price = @(-transactionAmount.integerValue);
          }
 
          if (response.statusCode == kHTTPStatusOK) {
+             [self->userInfo addPurchase:[[PsiCashPurchase alloc] initWithID:transactionID
+                                                            transactionClass:transactionClass
+                                                               distinguisher:transactionDistinguisher
+                                                                      expiry:expiry
+                                                               authorization:authorization]];
+
              dispatch_async(self->completionQueue, ^{
                  completionHandler(PsiCashStatus_Success, self->userInfo.serverTimeDiff, price, balance, expiry, transactionID, authorization, nil);
              });

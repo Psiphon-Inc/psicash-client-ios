@@ -18,16 +18,30 @@
  */
 
 //
-//  PurchasePrice.m
+//  Purchase.m
 //  PsiCashLib
 //
 
 #import <Foundation/Foundation.h>
-#import "PurchasePrice.h"
+#import "Purchase.h"
 
 #define CODER_VERSION 1
 
-@implementation PsiCashPurchasePrice
+@implementation PsiCashPurchase
+
+- (id)initWithID:(NSString*_Nonnull)ID
+transactionClass:(NSString*_Nonnull)transactionClass
+   distinguisher:(NSString*_Nonnull)distinguisher
+          expiry:(NSDate*_Nullable)expiry
+   authorization:(NSString*_Nullable)authorization
+{
+    self.ID = ID;
+    self.transactionClass = transactionClass;
+    self.distinguisher = distinguisher;
+    self.expiry = expiry;
+    self.authorization = authorization;
+    return self;
+}
 
 // Enable this object to be serializable into NSUserDefaults as NSData
 - (instancetype _Nullable)initWithCoder:(NSCoder*_Nonnull)decoder
@@ -39,19 +53,22 @@
 
     // Not checking CODER_VERSION yet
 
+    self.ID = [decoder decodeObjectForKey:@"ID"];
     self.transactionClass = [decoder decodeObjectForKey:@"transactionClass"];
     self.distinguisher = [decoder decodeObjectForKey:@"distinguisher"];
-    self.price = [decoder decodeObjectForKey:@"price"];
+    self.expiry = [decoder decodeObjectForKey:@"expiry"];
+    self.authorization = [decoder decodeObjectForKey:@"authorization"];
 
     return self;
 }
 - (void)encodeWithCoder:(NSCoder*_Nonnull)encoder
 {
     [encoder encodeObject:@CODER_VERSION forKey:@"CODER_VERSION"];
+    [encoder encodeObject:self.ID forKey:@"ID"];
     [encoder encodeObject:self.transactionClass forKey:@"transactionClass"];
     [encoder encodeObject:self.distinguisher forKey:@"distinguisher"];
-    [encoder encodeObject:self.price forKey:@"price"];
+    [encoder encodeObject:self.expiry forKey:@"expiry"];
+    [encoder encodeObject:self.authorization forKey:@"authorization"];
 }
 
-@end
-
+@end // @implementation PsiCashPurchase

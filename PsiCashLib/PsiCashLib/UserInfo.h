@@ -25,6 +25,8 @@
 #ifndef UserInfo_h
 #define UserInfo_h
 
+#import "Purchase.h"
+
 //
 // Stores persistent info about the user.
 //
@@ -35,7 +37,8 @@
 @property (readonly) NSDictionary *authTokens;
 @property BOOL isAccount;
 @property NSNumber *balance;
-@property NSArray *purchasePrices;
+@property NSArray *purchasePrices; // of PsiCashPurchasePrice
+@property NSArray *purchases; // of PsiCashPurchase
 @property NSTimeInterval serverTimeDiff;
 @property NSString *lastTransactionID;
 
@@ -46,6 +49,9 @@
 
 - (void)setAuthTokens:(NSDictionary *)authTokens
                 isAccount:(BOOL)isAccount;
+
+//! Add the given purchase to the stored purchases.
+- (void)addPurchase:(PsiCashPurchase*)purchase;
 
 @end
 

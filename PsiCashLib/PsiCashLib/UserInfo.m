@@ -30,9 +30,16 @@ NSString * const TOKENS_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Tokens";
 NSString * const ISACCOUNT_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-IsAccount";
 NSString * const BALANCE_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Balance";
 NSString * const PURCHASE_PRICES_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-PurchasePrices";
+NSString * const PURCHASES_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Purchases";
 NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-ServerTimeDiff";
 NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-LastTransactionID";
 
+
+@interface UserInfo ()
+{
+NSMutableArray *_purchases; // of PsiCashPurchase
+}
+@end
 
 @implementation UserInfo {
     NSInteger _isAccount;
@@ -41,6 +48,7 @@ NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-L
 @synthesize authTokens = _authTokens;
 @synthesize balance = _balance;
 @synthesize purchasePrices = _purchasePrices;
+@synthesize purchases = _purchases;
 @synthesize serverTimeDiff = _serverTimeDiff;
 @synthesize lastTransactionID = _lastTransactionID;
 
@@ -52,6 +60,7 @@ NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-L
               isAccount:[defaults integerForKey:ISACCOUNT_DEFAULTS_KEY]];
     self->_balance = [defaults objectForKey:BALANCE_DEFAULTS_KEY];
     self->_purchasePrices = [NSKeyedUnarchiver unarchiveObjectWithData:[defaults objectForKey:PURCHASE_PRICES_DEFAULTS_KEY]];
+    self->_purchases = [NSKeyedUnarchiver unarchiveObjectWithData:[defaults objectForKey:PURCHASES_DEFAULTS_KEY]];;
     self->_serverTimeDiff = [defaults doubleForKey:SERVER_TIME_DIFF_DEFAULTS_KEY];
     self->_lastTransactionID = [defaults stringForKey:LAST_TRANSACTION_ID_DEFAULTS_KEY];
 
@@ -66,6 +75,7 @@ NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-L
         [self setAuthTokens:emptyAuthTokens isAccount:NO];
         self.balance = @0;
         self.purchasePrices = @[];
+        self.purchases = [NSMutableArray array];
         self.serverTimeDiff = 0.0;
         self.lastTransactionID = nil;
     }
@@ -170,6 +180,44 @@ NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-L
     }
 }
 
+- (void)setPurchases:(NSArray*)purchases
+{
+    @synchronized(self)
+    {
+        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:purchases];
+        [[NSUserDefaults standardUserDefaults] setObject:data forKey:PURCHASES_DEFAULTS_KEY];
+
+        self->_purchases = [NSMutableArray arrayWithArray:purchases];
+    }
+}
+
+- (void)addPurchase:(PsiCashPurchase*)purchase
+{
+    @synchronized(self)
+    {
+        if (!self->_purchases) {
+            self->_purchases = [NSMutableArray array];
+        }
+
+        [self->_purchases addObject:purchase];
+        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self->_purchases];
+        [[NSUserDefaults standardUserDefaults] setObject:data forKey:PURCHASES_DEFAULTS_KEY];
+
+        // Also set the lastTransactionID
+        self.lastTransactionID = purchase.ID;
+    }
+}
+
+- (NSArray*)purchases
+{
+    NSArray *retVal;
+    @synchronized(self)
+    {
+        retVal = [self->_purchases copy];
+    }
+    return retVal;
+}
+
 - (NSTimeInterval)serverTimeDiff
 {
     NSTimeInterval retVal;
@@ -184,7 +232,7 @@ NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-L
 {
     @synchronized(self)
     {
-        [[NSUserDefaults standardUserDefaults] setObject:lastTransactionID forKey:LAST_TRANSACTION_ID_DEFAULTS_KEY];
+        [[NSUserDefaults standardUserDefaults] setValue:lastTransactionID forKey:LAST_TRANSACTION_ID_DEFAULTS_KEY];
         self->_lastTransactionID = lastTransactionID;
     }
 }

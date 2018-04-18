@@ -173,5 +173,16 @@ int requestMutatorsIndex;
     [task resume];
 }
 
++ (BOOL)is:(id)a equalTo:(id)b
+{
+    if (!a && !b) {
+        return YES;
+    }
+    else if (!a || !b) {
+        return NO;
+    }
+    return [a isEqual:b];
+}
+
 @end
 
