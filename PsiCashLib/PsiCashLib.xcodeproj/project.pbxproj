@@ -17,8 +17,9 @@
 		6647F99F204CD53100C7457B /* NSError+NSErrorExt.m in Sources */ = {isa = PBXBuildFile; fileRef = 6647F99B204CD53100C7457B /* NSError+NSErrorExt.m */; };
 		6652236C2087A704004B84D1 /* PurchasePrice.m in Sources */ = {isa = PBXBuildFile; fileRef = 6652236B2087A704004B84D1 /* PurchasePrice.m */; };
 		6652236E2087A79B004B84D1 /* PurchasePrice.h in Headers */ = {isa = PBXBuildFile; fileRef = 6652236D2087A712004B84D1 /* PurchasePrice.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		665223772087B7CE004B84D1 /* Purchase.h in Headers */ = {isa = PBXBuildFile; fileRef = 665223752087B7CD004B84D1 /* Purchase.h */; };
+		665223772087B7CE004B84D1 /* Purchase.h in Headers */ = {isa = PBXBuildFile; fileRef = 665223752087B7CD004B84D1 /* Purchase.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		665223782087B7CE004B84D1 /* Purchase.m in Sources */ = {isa = PBXBuildFile; fileRef = 665223762087B7CD004B84D1 /* Purchase.m */; };
+		668CE61E208DF9070053DE4C /* Accessors.m in Sources */ = {isa = PBXBuildFile; fileRef = 668CE61D208DF9070053DE4C /* Accessors.m */; };
 		66C0139C204D7B4C00F55E04 /* UserInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C0139B204D7B4C00F55E04 /* UserInfo.m */; };
 		66C0139E204D7B7000F55E04 /* UserInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C0139D204D7B7000F55E04 /* UserInfo.h */; };
 		66C013A920543FE000F55E04 /* HTTPStatusCodes.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */; };
@@ -53,6 +54,7 @@
 		6652236D2087A712004B84D1 /* PurchasePrice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PurchasePrice.h; sourceTree = "<group>"; };
 		665223752087B7CD004B84D1 /* Purchase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Purchase.h; sourceTree = "<group>"; };
 		665223762087B7CD004B84D1 /* Purchase.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Purchase.m; sourceTree = "<group>"; };
+		668CE61D208DF9070053DE4C /* Accessors.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Accessors.m; sourceTree = "<group>"; };
 		66C0139B204D7B4C00F55E04 /* UserInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UserInfo.m; sourceTree = "<group>"; };
 		66C0139D204D7B7000F55E04 /* UserInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserInfo.h; sourceTree = "<group>"; };
 		66C013A12051D3B200F55E04 /* HTTPStatusCodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTTPStatusCodes.h; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 			children = (
 				6647F98E204CD4D100C7457B /* Info.plist */,
 				66C013B12054697200F55E04 /* NewTransaction.m */,
+				668CE61D208DF9070053DE4C /* Accessors.m */,
 				6647F98C204CD4D100C7457B /* PsiCashLibTests.m */,
 				662D6824206AB7730031414C /* RefreshClientState.m */,
 				66C013B320546ACC00F55E04 /* SecretTestValues.h */,
@@ -265,6 +268,7 @@
 			files = (
 				6647F98D204CD4D100C7457B /* PsiCashLibTests.m in Sources */,
 				662D6825206AB7730031414C /* RefreshClientState.m in Sources */,
+				668CE61E208DF9070053DE4C /* Accessors.m in Sources */,
 				66C013AD2054415900F55E04 /* TestHelpers.m in Sources */,
 				66C013B22054697200F55E04 /* NewTransaction.m in Sources */,
 			);

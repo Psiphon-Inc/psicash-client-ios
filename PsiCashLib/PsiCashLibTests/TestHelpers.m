@@ -147,7 +147,7 @@ int requestMutatorsIndex;
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"class"
                                                       value:@TEST_CREDIT_TRANSACTION_CLASS]];
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"distinguisher"
-                                                      value:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER]];
+                                                      value:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER]];
 
     NSMutableURLRequest *request = [psiCash createRequestFor:@"/transaction"
                                                   withMethod:@"POST"

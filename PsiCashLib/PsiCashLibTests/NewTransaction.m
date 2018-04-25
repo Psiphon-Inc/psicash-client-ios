@@ -57,7 +57,6 @@
     XCTestExpectation *exp = [self expectationWithDescription:@"Init tokens"];
 
     [psiCash refreshState:@[] withCompletion:^(PsiCashStatus status,
-                                               NSTimeInterval serverTimeDiff,
                                                NSArray * _Nullable validTokenTypes,
                                                BOOL isAccount,
                                                NSNumber * _Nullable balance,
@@ -70,10 +69,14 @@
     }];
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
+
+    [self->psiCash expirePurchases];
 }
 
 - (void)tearDown {
     // Put teardown code here. This method is called after the invocation of each test method in the class.
+    [NSThread sleepForTimeInterval:1.0];
+    [self->psiCash expirePurchases];
     [super tearDown];
 }
 
@@ -88,7 +91,6 @@
 
          // Check our balance to compare against later.
          [self->psiCash refreshState:@[] withCompletion:^(PsiCashStatus status,
-                                                          NSTimeInterval serverTimeDiff,
                                                           NSArray * _Nullable validTokenTypes,
                                                           BOOL isAccount,
                                                           NSNumber * _Nullable prePurchaseBalance,
@@ -100,10 +102,9 @@
 
              // Now make the transaction
              [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                                 withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
+                                                 withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                                  withExpectedPrice:@ONE_TRILLION
                                                     withCompletion:^(PsiCashStatus status,
-                                                                     NSTimeInterval serverTimeDiff,
                                                                      NSNumber*_Nullable price,
                                                                      NSNumber*_Nullable balance,
                                                                      NSDate*_Nullable expiry,
@@ -113,7 +114,6 @@
               {
                   XCTAssertNil(error);
                   XCTAssertEqual(status, PsiCashStatus_Success);
-                  XCTAssert(serverTimeDiff != 0.0); // Shouldn't be exactly 0
                   XCTAssertEqual(price.integerValue, ONE_TRILLION);
                   XCTAssertEqual(balance, @(prePurchaseBalance.integerValue - ONE_TRILLION));
                   XCTAssertNotNil(expiry);
@@ -129,14 +129,12 @@
 
                   XCTAssertGreaterThan([[self->psiCash validTokenTypes] count], 0);
                   XCTAssertEqual([self->psiCash balance], balance);
-                  XCTAssertEqual([self->psiCash serverTimeDiff], serverTimeDiff);
 
                   XCTAssert([transactionID isEqualToString:[[TestHelpers userInfo:self->psiCash] lastTransactionID]]);
 
                   XCTAssert([self containsTransactionWithID:transactionID
                                            transactionClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                              distinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
-                                                     expiry:expiry
+                                              distinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                               authorization:authorization]);
 
                   [exp fulfill];
@@ -152,7 +150,6 @@
 
     // Check our balance to compare against later.
     [psiCash refreshState:@[] withCompletion:^(PsiCashStatus status,
-                                               NSTimeInterval serverTimeDiff,
                                                NSArray * _Nullable validTokenTypes,
                                                BOOL isAccount,
                                                NSNumber * _Nullable prePurchaseBalance,
@@ -166,7 +163,6 @@
                                             withDistinguisher:@TEST_INT64_MAX_DISTINGUISHER
                                             withExpectedPrice:@TEST_INT64_MAX
                                                withCompletion:^(PsiCashStatus status,
-                                                                NSTimeInterval serverTimeDiff,
                                                                 NSNumber*_Nullable price,
                                                                 NSNumber*_Nullable balance,
                                                                 NSDate*_Nullable expiry,
@@ -200,10 +196,9 @@
 
          // Successfully purchase the long-lived item
          [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_MINUTE_DISTINGUISHER
+                                             withDistinguisher:@TEST_ONE_TRILLION_TEN_SECOND_DISTINGUISHER
                                              withExpectedPrice:@ONE_TRILLION
                                                 withCompletion:^(PsiCashStatus status,
-                                                                 NSTimeInterval serverTimeDiff,
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable successfulExpiry,
@@ -223,8 +218,7 @@
 
               XCTAssert([self containsTransactionWithID:successfulTransactionID
                                        transactionClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                          distinguisher:@TEST_ONE_TRILLION_ONE_MINUTE_DISTINGUISHER
-                                                 expiry:successfulExpiry
+                                          distinguisher:@TEST_ONE_TRILLION_TEN_SECOND_DISTINGUISHER
                                           authorization:authorization]);
 
               NSDate *now = [NSDate dateWithTimeIntervalSinceNow:0];
@@ -232,10 +226,9 @@
 
               // Try and fail to make the same purchase again
               [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                                  withDistinguisher:@TEST_ONE_TRILLION_ONE_MINUTE_DISTINGUISHER
+                                                  withDistinguisher:@TEST_ONE_TRILLION_TEN_SECOND_DISTINGUISHER
                                                   withExpectedPrice:@ONE_TRILLION
                                                      withCompletion:^(PsiCashStatus status,
-                                                                      NSTimeInterval serverTimeDiff,
                                                                       NSNumber*_Nullable price,
                                                                       NSNumber*_Nullable balance,
                                                                       NSDate*_Nullable expiry,
@@ -253,7 +246,8 @@
                    // Ensure the lastTransactionID hasn't been lost.
                    XCTAssert([successfulTransactionID isEqualToString:[[TestHelpers userInfo:self->psiCash] lastTransactionID]]);
 
-                   XCTAssert([expiry isEqualToDate:successfulExpiry]);
+                   // Let the transaction expire before continuing.
+                   [NSThread sleepForTimeInterval:11.0];
 
                    [exp fulfill];
                }];
@@ -270,7 +264,6 @@
                                   withDistinguisher:@TEST_INT64_MAX_DISTINGUISHER
                                   withExpectedPrice:@(TEST_INT64_MAX-1) // MISMATCH!
                                      withCompletion:^(PsiCashStatus status,
-                                                      NSTimeInterval serverTimeDiff,
                                                       NSNumber*_Nullable price,
                                                       NSNumber*_Nullable balance,
                                                       NSDate*_Nullable expiry,
@@ -299,7 +292,6 @@
                                   withDistinguisher:@"INVALID"
                                   withExpectedPrice:@(TEST_INT64_MAX)
                                      withCompletion:^(PsiCashStatus status,
-                                                      NSTimeInterval serverTimeDiff,
                                                       NSNumber*_Nullable price,
                                                       NSNumber*_Nullable balance,
                                                       NSDate*_Nullable expiry,
@@ -332,10 +324,9 @@
                            mutators:@[@"InvalidTokens"]];
 
     [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
+                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                         withExpectedPrice:@ONE_TRILLION
                                            withCompletion:^(PsiCashStatus status,
-                                                            NSTimeInterval serverTimeDiff,
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
@@ -368,10 +359,9 @@
                            mutators:@[@"Timeout:11"]];  // sleep for 11 secs
 
     [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
+                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                         withExpectedPrice:@ONE_TRILLION
                                            withCompletion:^(PsiCashStatus status,
-                                                            NSTimeInterval serverTimeDiff,
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
@@ -400,10 +390,9 @@
                            mutators:@[@"Response:code=200,body=none"]];
 
     [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
+                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                         withExpectedPrice:@ONE_TRILLION
                                            withCompletion:^(PsiCashStatus status,
-                                                            NSTimeInterval serverTimeDiff,
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
@@ -431,10 +420,9 @@
                            mutators:@[@"BadJSON:200"]];
 
     [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
+                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                         withExpectedPrice:@ONE_TRILLION
                                            withCompletion:^(PsiCashStatus status,
-                                                            NSTimeInterval serverTimeDiff,
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
@@ -462,10 +450,9 @@
                            mutators:@[@"Response:code=500"]];
 
     [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
+                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                         withExpectedPrice:@ONE_TRILLION
                                            withCompletion:^(PsiCashStatus status,
-                                                            NSTimeInterval serverTimeDiff,
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
@@ -493,10 +480,9 @@
                            mutators:@[@"Response:code=666"]];
 
     [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
+                                        withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                         withExpectedPrice:@ONE_TRILLION
                                            withCompletion:^(PsiCashStatus status,
-                                                            NSTimeInterval serverTimeDiff,
                                                             NSNumber*_Nullable price,
                                                             NSNumber*_Nullable balance,
                                                             NSDate*_Nullable expiry,
@@ -516,10 +502,9 @@
 - (BOOL)containsTransactionWithID:(NSString*_Nonnull)ID
                  transactionClass:(NSString*_Nonnull)transactionClass
                        distinguisher:(NSString*_Nonnull)distinguisher
-                              expiry:(NSDate*_Nullable)expiry
                        authorization:(NSString*_Nullable)authorization
 {
-    NSArray *purchases = [[TestHelpers userInfo:self->psiCash] purchases];
+    NSArray *purchases = self->psiCash.purchases;
     if ([purchases count] == 0) {
         return NO;
     }
@@ -528,7 +513,6 @@
         if ([TestHelpers is:purchase.ID equalTo:ID] &&
             [TestHelpers is:purchase.transactionClass equalTo:transactionClass] &&
             [TestHelpers is:purchase.distinguisher equalTo:distinguisher] &&
-            [TestHelpers is:purchase.expiry equalTo:expiry] &&
             [TestHelpers is:purchase.authorization equalTo:authorization]) {
             return YES;
         }

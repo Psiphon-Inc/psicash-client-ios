@@ -26,6 +26,7 @@
 #define PsiCash_h
 
 #import <Foundation/Foundation.h>
+#import "Purchase.h"
 
 
 typedef NS_ENUM(NSInteger, PsiCashStatus) {
@@ -47,20 +48,35 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 
 @interface PsiCash : NSObject
 
+# pragma mark - Init
+
 - (id _Nonnull)init;
 
-/*! Returns the stored valid token types. Like ["spender", "indicator"]. May be
- nil or empty. */
+# pragma mark - Stored info accessors
+
+/*! Returns the stored valid token types. Like ["spender", "indicator"].
+ May be nil or empty. */
 - (NSArray*_Nullable)validTokenTypes;
-//! Returns the stored info about whether the user is a tracker or an account.
+/*! Returns the stored info about whether the user is a tracker or an account. */
 - (BOOL)isAccount;
-//! Returns the stored user balance. May be nil.
+/*! Returns the stored user balance. May be nil. */
 - (NSNumber*_Nullable)balance;
-//! Returns the stored purchase prices. May be nil.
+/*! Returns the stored purchase prices. May be nil. */
 - (NSArray*_Nullable)purchasePrices;
-/*! Returns the stored difference between the server time and the local time.
- (Positive if the server time is ahead, negative if behind.) */
-- (NSTimeInterval)serverTimeDiff;
+/*! Returns the set of active purchases. May be nil or empty. */
+- (NSArray*_Nullable)purchases;
+/*! Returns a date adjusted for the time difference between client and server. */
+- (NSDate*_Nonnull)adjustForServerTimeDiff:(NSDate*_Nonnull)date;
+/*! Get the next expiring purchase and its expiry, adjusted for client-server
+    time difference. Returns NO if there is no outstanding expiring purchase
+    (or no outstanding purchases at all). */
+- (BOOL)nextExpiringPurchase:(PsiCashPurchase*_Nonnull*_Nullable)purchase
+                      expiry:(NSDate*_Nonnull*_Nullable)expiry;
+/*! Clear out expired purchases. Return the ones that were expired. Returns nil
+    if none were expired. */
+- (NSArray*_Nullable)expirePurchases;
+
+#pragma mark - RefreshState
 
 /*!
  Refreshes the client state. Retrieves info about whether the user has an
@@ -72,9 +88,6 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
    like `@["speed-boost"]`. If nil or empty, no purchase prices will be retrieved.
 
  Completion handler parameters:
-
- • serverTimeDiff: Indicates the difference between the server time and the local
-   time. (Positive if the server time is ahead, negative if behind.)
 
  • validTokenTypes: Will contain the available valid token types, like:
    @code ["earner", "indicator", "spender"] @endcode
@@ -116,12 +129,13 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
  */
 - (void)refreshState:(NSArray*_Nonnull)purchaseClasses
       withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray*_Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber*_Nullable balance,
                                        NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
                                        NSError*_Nullable error))completionHandler;
+
+#pragma mark - NewTransaction
 
 /*!
  Makes a new transaction for an "expiring-purchase" class, such as "speed-boost".
@@ -139,16 +153,13 @@ Completion handler parameters:
 
  • status: Indicates whether the request succeeded or which failure condition occurred.
 
- • serverTimeDiff: Indicates the difference between the server time and the local
-   time. (Positive if the server time is ahead, negative if behind.)
-
  • price: Indicates the price of the purchase. In success cases, will match the
    expectedPrice input. Nil if indicator token was not provided.
 
  • balance: The user's balance, newly updated if a successful purchase occurred.
    Nil if indicator token was not provided.
 
- • expiry: When the purchase is valid until, in server time.
+ • expiry: When the purchase is valid until (adjusted for client-server time difference).
 
  • authorization: The purchase authorization, if applicable to the purchase class
    (i.e., "speed-boost"). Nil if not applicable.
@@ -161,17 +172,17 @@ Completion handler parameters:
    handler arguments will be valid (authorization only if applicable).
 
  • PsiCashStatus_ExistingTransaction: There is already a non-expired purchase that
-   prevents this purchase from proceeding. serverTimeDiff, price, and balance
-   will be valid. expiry will be valid and will be set to the expiry of the existing
-   purchase. This status suggests that a purchase retrieval is necessary (because
-   an outstanding purchase is no known locally).
+   prevents this purchase from proceeding. price and balance will be valid. expiry
+   will be valid and will be set to the expiry of the existing purchase. This
+   status suggests that a purchase retrieval is necessary (because an outstanding
+   purchase is no known locally).
 
  • PsiCashStatus_InsufficientBalance: The user does not have sufficient Psi to make
-   the requested purchase. serverTimeDiff, price, and balance are valid.
+   the requested purchase. price and balance are valid.
 
  • PsiCashStatus_TransactionAmountMismatch: The actual purchase price does not match
    expectedPrice, so the purchase cannot proceed. The price list should be updated
-   immediately. serverTimeDiff, price, and balance are valid.
+   immediately. price and balance are valid.
 
  • PsiCashStatus_TransactionTypeNotFound: A transaction type with the given class and
    distinguisher could not be found. The price list should be updated immediately,
@@ -188,7 +199,6 @@ Completion handler parameters:
                              withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
                              withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
                                 withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                                                 NSTimeInterval serverTimeDiff,
                                                                  NSNumber*_Nullable price,
                                                                  NSNumber*_Nullable balance,
                                                                  NSDate*_Nullable expiry,

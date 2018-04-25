@@ -69,7 +69,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -78,8 +77,6 @@
      {
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_Success);
-
-         XCTAssert(serverTimeDiff != 0.0); // Shouldn't be exactly 0
 
          XCTAssertFalse(isAccount);
 
@@ -95,7 +92,6 @@
          XCTAssertGreaterThan([[self->psiCash validTokenTypes] count], 0);
          XCTAssertFalse([self->psiCash isAccount]);
          XCTAssertEqual([self->psiCash balance], balance);
-         XCTAssertEqual([self->psiCash serverTimeDiff], serverTimeDiff);
          XCTAssert([[self->psiCash purchasePrices] isEqualToArray:purchasePrices]);
 
          [exp fulfill];
@@ -113,7 +109,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -136,7 +131,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,
@@ -159,7 +153,6 @@
 
               XCTAssertGreaterThan([[self->psiCash validTokenTypes] count], 0);
               XCTAssertEqual([self->psiCash balance], balance);
-              XCTAssertEqual([self->psiCash serverTimeDiff], serverTimeDiff);
               XCTAssert([[self->psiCash purchasePrices] isEqualToArray:purchasePrices]);
 
               [exp fulfill];
@@ -176,7 +169,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -210,7 +202,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -244,7 +235,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable originalBalance,
@@ -274,7 +264,6 @@
               // Refresh state again to check balance.
               [self->psiCash refreshState:purchaseClasses
                            withCompletion:^(PsiCashStatus status,
-                                            NSTimeInterval serverTimeDiff,
                                             NSArray * _Nullable validTokenTypes,
                                             BOOL isAccount,
                                             NSNumber * _Nullable newBalance,
@@ -306,7 +295,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -336,7 +324,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -378,7 +365,6 @@
     // First get some valid tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -396,7 +382,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,
@@ -439,7 +424,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -458,7 +442,6 @@
          // Make the request again. Should get us new tokens.
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,
@@ -496,7 +479,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -518,7 +500,6 @@
          // Make the request again. Should get us new tokens.
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,
@@ -553,7 +534,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -584,7 +564,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -603,7 +582,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,
@@ -640,7 +618,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -672,7 +649,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -689,7 +665,6 @@
          // Do another request, now that we we have tokens
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,
@@ -724,7 +699,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -757,7 +731,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -776,7 +749,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,
@@ -811,7 +783,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -843,7 +814,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -862,7 +832,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,
@@ -897,7 +866,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -929,7 +897,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSTimeInterval serverTimeDiff,
                                   NSArray * _Nullable validTokenTypes,
                                   BOOL isAccount,
                                   NSNumber * _Nullable balance,
@@ -948,7 +915,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSTimeInterval serverTimeDiff,
                                        NSArray * _Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber * _Nullable balance,

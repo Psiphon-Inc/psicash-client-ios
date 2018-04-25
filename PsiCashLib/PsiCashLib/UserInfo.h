@@ -47,11 +47,13 @@
 //! Clears all user ID state.
 - (void)clear;
 
-- (void)setAuthTokens:(NSDictionary *)authTokens
+- (void)setAuthTokens:(NSDictionary*_Nullable)authTokens
                 isAccount:(BOOL)isAccount;
 
 //! Add the given purchase to the stored purchases.
-- (void)addPurchase:(PsiCashPurchase*)purchase;
+- (void)addPurchase:(PsiCashPurchase*_Nonnull)purchase;
+//! Remove the given purchases from the stored purchases.
+- (void)removePurchases:(NSArray*_Nonnull)purchases;
 
 @end
 
