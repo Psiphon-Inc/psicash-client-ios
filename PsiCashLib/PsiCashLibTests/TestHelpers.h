@@ -29,6 +29,9 @@
 #import "UserInfo.h"
 #import "SecretTestValues.h" // This file is in CipherShare
 
+extern NSString * const LANDING_PAGE_TOKEN_KEY;
+extern NSString * const EARNER_TOKEN_TYPE;
+
 @interface TestHelpers : NSObject
 
 + (UserInfo*_Nonnull)userInfo:(PsiCash*_Nonnull)psiCash;
