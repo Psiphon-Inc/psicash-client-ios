@@ -27,6 +27,7 @@
 
 #import <Foundation/Foundation.h>
 #import "Purchase.h"
+#import "PurchasePrice.h"
 
 
 typedef NS_ENUM(NSInteger, PsiCashStatus) {
@@ -56,15 +57,15 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 
 /*! Returns the stored valid token types. Like ["spender", "indicator"].
  May be nil or empty. */
-- (NSArray*_Nullable)validTokenTypes;
+- (NSArray<NSString*>*_Nullable)validTokenTypes;
 /*! Returns the stored info about whether the user is a tracker or an account. */
 - (BOOL)isAccount;
 /*! Returns the stored user balance. May be nil. */
 - (NSNumber*_Nullable)balance;
 /*! Returns the stored purchase prices. May be nil. */
-- (NSArray*_Nullable)purchasePrices;
+- (NSArray<PsiCashPurchasePrice*>*_Nullable)purchasePrices;
 /*! Returns the set of active purchases. May be nil or empty. */
-- (NSArray*_Nullable)purchases;
+- (NSArray<PsiCashPurchase*>*_Nullable)purchases;
 /*! Returns a date adjusted for the time difference between client and server. */
 - (NSDate*_Nonnull)adjustForServerTimeDiff:(NSDate*_Nonnull)date;
 /*! Get the next expiring purchase and its expiry, adjusted for client-server
@@ -74,7 +75,14 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
                       expiry:(NSDate*_Nonnull*_Nullable)expiry;
 /*! Clear out expired purchases. Return the ones that were expired. Returns nil
     if none were expired. */
-- (NSArray*_Nullable)expirePurchases;
+- (NSArray<PsiCashPurchase*>*_Nullable)expirePurchases;
+
+/*! Utilizes stored tokens to craft a landing page URL.
+    Returns an error if modification is impossible, or if there is not valid
+    token available. (In that case the error should be logged -- and added to
+    feedback -- and home page opening should proceed. */
+- (NSError*_Nullable)modifyLandingPage:(NSString*_Nonnull)url
+                           modifiedURL:(NSString*_Nullable*_Nonnull)modifiedURL;
 
 #pragma mark - RefreshState
 
@@ -127,12 +135,12 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
  • PsiCashStatus_InvalidTokens: Should never happen (indicates something like
    local storage corruption). The local user ID will be cleared.
  */
-- (void)refreshState:(NSArray*_Nonnull)purchaseClasses
+- (void)refreshState:(NSArray<NSString*>*_Nonnull)purchaseClasses
       withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                       NSArray*_Nullable validTokenTypes,
+                                       NSArray<NSString*>*_Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber*_Nullable balance,
-                                       NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
+                                       NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
                                        NSError*_Nullable error))completionHandler;
 
 #pragma mark - NewTransaction

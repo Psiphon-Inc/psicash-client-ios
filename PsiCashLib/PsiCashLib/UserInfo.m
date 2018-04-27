@@ -71,7 +71,7 @@ NSMutableArray *_purchases; // of PsiCashPurchase
 {
     @synchronized(self)
     {
-        NSDictionary *emptyAuthTokens = [[NSDictionary alloc] init];
+        NSDictionary<NSString*, NSString*> *emptyAuthTokens = [[NSDictionary alloc] init];
         [self setAuthTokens:emptyAuthTokens isAccount:NO];
         self.balance = @0;
         self.purchasePrices = @[];
@@ -81,7 +81,7 @@ NSMutableArray *_purchases; // of PsiCashPurchase
     }
 }
 
-- (void)setAuthTokens:(NSDictionary*)authTokens isAccount:(BOOL)isAccount
+- (void)setAuthTokens:(NSDictionary<NSString*, NSString*>*)authTokens isAccount:(BOOL)isAccount
 {
     @synchronized(self)
     {
@@ -99,9 +99,9 @@ NSMutableArray *_purchases; // of PsiCashPurchase
     }
 }
 
-- (NSDictionary*)authTokens
+- (NSDictionary<NSString*, NSString*>*)authTokens
 {
-    NSDictionary *retVal;
+    NSDictionary<NSString*, NSString*> *retVal;
 
     @synchronized(self)
     {
@@ -151,7 +151,7 @@ NSMutableArray *_purchases; // of PsiCashPurchase
     return retVal;
 }
 
-- (void)setPurchasePrices:(NSArray*)purchasePrices
+- (void)setPurchasePrices:(NSArray<PsiCashPurchasePrice*>*)purchasePrices
 {
     @synchronized(self)
     {
@@ -161,9 +161,9 @@ NSMutableArray *_purchases; // of PsiCashPurchase
     }
 }
 
-- (NSArray*)purchasePrices
+- (NSArray<PsiCashPurchasePrice*>*)purchasePrices
 {
-    NSArray *retVal;
+    NSArray<PsiCashPurchasePrice*> *retVal;
     @synchronized(self)
     {
         retVal = [self->_purchasePrices copy];
@@ -180,7 +180,7 @@ NSMutableArray *_purchases; // of PsiCashPurchase
     }
 }
 
-- (void)setPurchases:(NSArray*)purchases
+- (void)setPurchases:(NSArray<PsiCashPurchase*>*)purchases
 {
     @synchronized(self)
     {
@@ -215,7 +215,7 @@ NSMutableArray *_purchases; // of PsiCashPurchase
     }
 }
 
-- (void)removePurchases:(NSArray*_Nonnull)purchases
+- (void)removePurchases:(NSArray<PsiCashPurchase*>*_Nonnull)purchases
 {
     @synchronized(self)
     {
@@ -243,9 +243,9 @@ NSMutableArray *_purchases; // of PsiCashPurchase
     }
 }
 
-- (NSArray*)purchases
+- (NSArray<PsiCashPurchase*>*)purchases
 {
-    NSArray *retVal;
+    NSArray<PsiCashPurchase*> *retVal;
     @synchronized(self)
     {
         retVal = [self->_purchases copy];
