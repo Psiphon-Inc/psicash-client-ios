@@ -26,6 +26,7 @@
 #define UserInfo_h
 
 #import "Purchase.h"
+#import "PurchasePrice.h"
 
 //
 // Stores persistent info about the user.
@@ -34,11 +35,11 @@
 @interface UserInfo : NSObject
 
 //! authTokens maps token type to value.
-@property (readonly) NSDictionary *authTokens;
+@property (readonly) NSDictionary<NSString*, NSString*> *authTokens;
 @property BOOL isAccount;
 @property NSNumber *balance;
-@property NSArray *purchasePrices; // of PsiCashPurchasePrice
-@property NSArray *purchases; // of PsiCashPurchase
+@property NSArray<PsiCashPurchasePrice*> *purchasePrices;
+@property NSArray<PsiCashPurchase*> *purchases;
 @property NSTimeInterval serverTimeDiff;
 @property NSString *lastTransactionID;
 
@@ -47,13 +48,13 @@
 //! Clears all user ID state.
 - (void)clear;
 
-- (void)setAuthTokens:(NSDictionary*_Nullable)authTokens
+- (void)setAuthTokens:(NSDictionary<NSString*, NSString*>*_Nullable)authTokens
                 isAccount:(BOOL)isAccount;
 
 //! Add the given purchase to the stored purchases.
 - (void)addPurchase:(PsiCashPurchase*_Nonnull)purchase;
 //! Remove the given purchases from the stored purchases.
-- (void)removePurchases:(NSArray*_Nonnull)purchases;
+- (void)removePurchases:(NSArray<PsiCashPurchase*>*_Nonnull)purchases;
 
 @end
 

@@ -42,6 +42,23 @@
     // Put setup code here. This method is called before the invocation of each test method in the class.
 
     psiCash = [[PsiCash alloc] init];
+
+    XCTestExpectation *exp = [self expectationWithDescription:@"Init tokens"];
+
+    [psiCash refreshState:@[] withCompletion:^(PsiCashStatus status,
+                                               NSArray * _Nullable validTokenTypes,
+                                               BOOL isAccount,
+                                               NSNumber * _Nullable balance,
+                                               NSArray * _Nullable purchasePrices,
+                                               NSError * _Nullable error) {
+        XCTAssertNil(error);
+        XCTAssertEqual(status, PsiCashStatus_Success);
+
+        [exp fulfill];
+    }];
+
+    [self waitForExpectationsWithTimeout:100 handler:nil];
+
     [self->psiCash expirePurchases];
 }
 
@@ -395,6 +412,87 @@
 
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
+}
+
+- (void)testModifyLandingPage {
+    NSString *result, *expected;
+    NSError *err;
+
+    // Remove all tokens.
+    [TestHelpers clearUserInfo:self->psiCash];
+    err = [self->psiCash modifyLandingPage:@"https://example.com"
+                               modifiedURL:&result];
+    // We have no tokens to use
+    XCTAssertNotNil(err);
+
+    // Set tokens but not an earner token.
+    [[TestHelpers userInfo:self->psiCash] setAuthTokens:@{@"faketype1": @"abcd", @"faketype2": @"1234"}
+                                              isAccount:NO];
+    err = [self->psiCash modifyLandingPage:@"https://example.com"
+                               modifiedURL:&result];
+    XCTAssertNotNil(err);
+
+    // Set tokens with an earner token.
+    [[TestHelpers userInfo:self->psiCash] setAuthTokens:@{EARNER_TOKEN_TYPE: @"mytoken", @"faketype1": @"abcd", @"faketype2": @"1234"}
+                                              isAccount:NO];
+
+    // Bad URL
+    err = [self->psiCash modifyLandingPage:@"http://汉"
+                               modifiedURL:&result];
+    XCTAssertNotNil(err);
+
+    // Has no query or fragment
+    err = [self->psiCash modifyLandingPage:@"https://example.com"
+                               modifiedURL:&result];
+    XCTAssertNil(err);
+    expected = [NSString stringWithFormat:@"https://example.com#%@=mytoken", LANDING_PAGE_TOKEN_KEY];
+    XCTAssert([result isEqualToString:expected]);
+
+    // Has fragment
+    err = [self->psiCash modifyLandingPage:@"https://example.com#anchor"
+                               modifiedURL:&result];
+    XCTAssertNil(err);
+    expected = [NSString stringWithFormat:@"https://example.com?%@=mytoken#anchor", LANDING_PAGE_TOKEN_KEY];
+    XCTAssert([result isEqualToString:expected]);
+
+    // Has query
+    err = [self->psiCash modifyLandingPage:@"https://example.com?a=b"
+                               modifiedURL:&result];
+    XCTAssertNil(err);
+    expected = [NSString stringWithFormat:@"https://example.com?a=b#%@=mytoken", LANDING_PAGE_TOKEN_KEY];
+    XCTAssert([result isEqualToString:expected]);
+
+    // Has query and fragment
+    err = [self->psiCash modifyLandingPage:@"https://example.com?a=b#anchor"
+                               modifiedURL:&result];
+    XCTAssertNil(err);
+    expected = [NSString stringWithFormat:@"https://example.com?a=b&%@=mytoken#anchor", LANDING_PAGE_TOKEN_KEY];
+    XCTAssert([result isEqualToString:expected]);
+
+    // Some path variations
+    err = [self->psiCash modifyLandingPage:@"http://example.com/"
+                               modifiedURL:&result];
+    XCTAssertNil(err);
+    expected = [NSString stringWithFormat:@"http://example.com/#%@=mytoken", LANDING_PAGE_TOKEN_KEY];
+    XCTAssert([result isEqualToString:expected]);
+
+    err = [self->psiCash modifyLandingPage:@"http://example.com/"
+                               modifiedURL:&result];
+    XCTAssertNil(err);
+    expected = [NSString stringWithFormat:@"http://example.com/#%@=mytoken", LANDING_PAGE_TOKEN_KEY];
+    XCTAssert([result isEqualToString:expected]);
+
+    err = [self->psiCash modifyLandingPage:@"http://example.com/x/y/z.html"
+                               modifiedURL:&result];
+    XCTAssertNil(err);
+    expected = [NSString stringWithFormat:@"http://example.com/x/y/z.html#%@=mytoken", LANDING_PAGE_TOKEN_KEY];
+    XCTAssert([result isEqualToString:expected]);
+
+    err = [self->psiCash modifyLandingPage:@"http://sub.example.com/x/y/z.html?a=b#anchor"
+                               modifiedURL:&result];
+    XCTAssertNil(err);
+    expected = [NSString stringWithFormat:@"http://sub.example.com/x/y/z.html?a=b&%@=mytoken#anchor", LANDING_PAGE_TOKEN_KEY];
+    XCTAssert([result isEqualToString:expected]);
 }
 
 @end

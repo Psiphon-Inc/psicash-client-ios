@@ -19,6 +19,7 @@
 		6652236E2087A79B004B84D1 /* PurchasePrice.h in Headers */ = {isa = PBXBuildFile; fileRef = 6652236D2087A712004B84D1 /* PurchasePrice.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		665223772087B7CE004B84D1 /* Purchase.h in Headers */ = {isa = PBXBuildFile; fileRef = 665223752087B7CD004B84D1 /* Purchase.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		665223782087B7CE004B84D1 /* Purchase.m in Sources */ = {isa = PBXBuildFile; fileRef = 665223762087B7CD004B84D1 /* Purchase.m */; };
+		66702C6D2092398B00905010 /* build-git-commit.txt in Resources */ = {isa = PBXBuildFile; fileRef = 66702C6C2092398B00905010 /* build-git-commit.txt */; };
 		668CE61E208DF9070053DE4C /* Accessors.m in Sources */ = {isa = PBXBuildFile; fileRef = 668CE61D208DF9070053DE4C /* Accessors.m */; };
 		66C0139C204D7B4C00F55E04 /* UserInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 66C0139B204D7B4C00F55E04 /* UserInfo.m */; };
 		66C0139E204D7B7000F55E04 /* UserInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 66C0139D204D7B7000F55E04 /* UserInfo.h */; };
@@ -54,6 +55,7 @@
 		6652236D2087A712004B84D1 /* PurchasePrice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PurchasePrice.h; sourceTree = "<group>"; };
 		665223752087B7CD004B84D1 /* Purchase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Purchase.h; sourceTree = "<group>"; };
 		665223762087B7CD004B84D1 /* Purchase.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Purchase.m; sourceTree = "<group>"; };
+		66702C6C2092398B00905010 /* build-git-commit.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "build-git-commit.txt"; sourceTree = "<group>"; };
 		668CE61D208DF9070053DE4C /* Accessors.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Accessors.m; sourceTree = "<group>"; };
 		66C0139B204D7B4C00F55E04 /* UserInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UserInfo.m; sourceTree = "<group>"; };
 		66C0139D204D7B7000F55E04 /* UserInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserInfo.h; sourceTree = "<group>"; };
@@ -87,6 +89,7 @@
 		6647F974204CD4D100C7457B = {
 			isa = PBXGroup;
 			children = (
+				66702C6B2092397600905010 /* Resources */,
 				6647F980204CD4D100C7457B /* PsiCashLib */,
 				6647F98B204CD4D100C7457B /* PsiCashLibTests */,
 				6647F97F204CD4D100C7457B /* Products */,
@@ -138,6 +141,14 @@
 			path = PsiCashLibTests;
 			sourceTree = "<group>";
 		};
+		66702C6B2092397600905010 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				66702C6C2092398B00905010 /* build-git-commit.txt */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -165,6 +176,7 @@
 				6647F979204CD4D100C7457B /* Sources */,
 				6647F97A204CD4D100C7457B /* Frameworks */,
 				6647F97B204CD4D100C7457B /* Headers */,
+				66702C67209238B200905010 /* ShellScript */,
 				6647F97C204CD4D100C7457B /* Resources */,
 			);
 			buildRules = (
@@ -236,6 +248,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66702C6D2092398B00905010 /* build-git-commit.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,6 +260,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		66702C67209238B200905010 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "git describe --always --long --dirty --tags > build-git-commit.txt";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		6647F979204CD4D100C7457B /* Sources */ = {

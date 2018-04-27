@@ -59,6 +59,8 @@ NSTimeInterval const TIMEOUT_SECS = 10.0;
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 NSString * const PSICASH_USER_AGENT = @"Psiphon-PsiCash-iOS";
 NSUInteger const REQUEST_RETRY_LIMIT = 2;
+NSString * const LANDING_PAGE_TOKEN_KEY = @"psicash";
+NSString * const EARNER_TOKEN_TYPE = @"earner";
 
 @implementation PsiCash {
     UserInfo *userInfo;
@@ -80,7 +82,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 # pragma mark - Stored info accessors
 
-- (NSArray*_Nullable)validTokenTypes
+- (NSArray<NSString*>*_Nullable)validTokenTypes
 {
     return [self->userInfo.authTokens allKeys];
 }
@@ -95,12 +97,12 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     return self->userInfo.balance;
 }
 
-- (NSArray*_Nullable)purchasePrices
+- (NSArray<PsiCashPurchasePrice*>*_Nullable)purchasePrices
 {
     return self->userInfo.purchasePrices;
 }
 
-- (NSArray*_Nullable)purchases
+- (NSArray<PsiCashPurchase*>*_Nullable)purchases
 {
     return self->userInfo.purchases;
 }
@@ -147,9 +149,9 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     return YES;
 }
 
-- (NSArray*_Nullable)expirePurchases
+- (NSArray<PsiCashPurchase*>*_Nullable)expirePurchases
 {
-    NSArray *purchases = self->userInfo.purchases;
+    NSArray<PsiCashPurchase*> *purchases = self->userInfo.purchases;
 
     if (!purchases) {
         return nil;
@@ -173,10 +175,54 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     return expiredPurchases;
 }
 
+- (NSError*_Nullable)modifyLandingPage:(NSString*_Nonnull)url
+                           modifiedURL:(NSString*_Nullable*_Nonnull)modifiedURL
+{
+    *modifiedURL = nil;
+
+    NSURLComponents *urlComponents = [NSURLComponents componentsWithString:url];
+    if (!urlComponents) {
+        // Decomposing the URL failed. We can't possibly modify it.
+        return [NSError errorWithMessage:@"NSURLComponents::componentsWithString failed to decompose URL"
+                            fromFunction:__FUNCTION__];
+    }
+
+    // Get the earner token. If we don't have one, we can't modify the URL.
+    if (!self->userInfo.authTokens ||
+        ![self->userInfo.authTokens[EARNER_TOKEN_TYPE] isKindOfClass:[NSString class]]) {
+        return [NSError errorWithMessage:@"no valid earner token"
+                            fromFunction:__FUNCTION__];
+    }
+
+    NSString *earnerToken = self->userInfo.authTokens[EARNER_TOKEN_TYPE];
+
+    // Our preference is to put the token into the URL's fragment/hash/anchor,
+    // because we'd prefer the token not to be sent to the server.
+    // But if there already is a value there we'll put it into the query parameters.
+    // (Because altering the fragment is more likely to have negative consequences
+    // for the page than adding a query parameter that will be ignored.)
+
+    if (!urlComponents.fragment) {
+        urlComponents.fragment = [NSString stringWithFormat:@"%@=%@",
+                                  LANDING_PAGE_TOKEN_KEY,
+                                  earnerToken];
+    }
+    else {
+        NSMutableArray<NSURLQueryItem*> *queryItems = [NSMutableArray arrayWithArray:urlComponents.queryItems];
+        [queryItems addObject:[NSURLQueryItem queryItemWithName:LANDING_PAGE_TOKEN_KEY
+                                                          value:earnerToken]];
+        urlComponents.queryItems = queryItems;
+    }
+
+    *modifiedURL = [NSString stringWithString:urlComponents.string];
+
+    return nil;
+}
+
 #pragma mark - NewTracker
 
 - (void)newTracker:(void (^_Nonnull)(PsiCashStatus status,
-                             NSDictionary*_Nullable authTokens,
+                             NSDictionary<NSString*, NSString*>*_Nullable authTokens,
                              NSError*_Nullable error))completionHandler
 {
     NSMutableURLRequest *request = [self createRequestFor:@"/tracker"
@@ -205,7 +251,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
                  return;
              }
 
-             NSDictionary* authTokens;
+             NSDictionary<NSString*, NSString*>* authTokens;
              [PsiCash parseNewTrackerResponse:data authTokens:&authTokens withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
@@ -240,7 +286,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      }];
 }
 
-+ (void)parseNewTrackerResponse:(NSData*)jsonData authTokens:(NSDictionary**)authTokens withError:(NSError**)error
++ (void)parseNewTrackerResponse:(NSData*)jsonData authTokens:(NSDictionary<NSString*, NSString*>**)authTokens withError:(NSError**)error
 {
     *error = nil;
     *authTokens = nil;
@@ -292,12 +338,12 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 #pragma mark - RefreshState
 
-- (void)refreshState:(NSArray*_Nonnull)purchaseClasses
+- (void)refreshState:(NSArray<NSString*>*_Nonnull)purchaseClasses
       withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                       NSArray*_Nullable validTokenTypes,
+                                       NSArray<NSString*>*_Nullable validTokenTypes,
                                        BOOL isAccount,
                                        NSNumber*_Nullable balance,
-                                       NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
+                                       NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
                                        NSError*_Nullable error))completionHandler
 {
     // Call the helper, indicating that it can do one level of recursion.
@@ -308,13 +354,13 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 // allowRecursion must be set to YES when called by refreshState and when this
 // this method is entered with tokens in hand. This prevents infinite recursion.
-- (void)refreshStateHelper:(NSArray*_Nonnull)purchaseClasses
+- (void)refreshStateHelper:(NSArray<NSString*>*_Nonnull)purchaseClasses
             allowRecursion:(BOOL)allowRecursion
             withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                             NSArray*_Nullable validTokenTypes,
+                                             NSArray<NSString*>*_Nullable validTokenTypes,
                                              BOOL isAccount,
                                              NSNumber*_Nullable balance,
-                                             NSArray*_Nullable purchasePrices, // of PsiCashPurchasePrice
+                                             NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
                                              NSError*_Nullable error))completionHandler
 {
     /*
@@ -330,7 +376,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
      6. If there are still no valid tokens, then things are horribly wrong. Return error.
      */
 
-    NSDictionary *authTokens = self->userInfo.authTokens;
+    NSDictionary<NSString*, NSString*> *authTokens = self->userInfo.authTokens;
     if (!authTokens || [authTokens count] == 0) {
         // No tokens.
 
@@ -350,7 +396,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
         // Get new tracker tokens. (Which is effectively getting a new identity.)
         [self newTracker:^(PsiCashStatus status,
-                           NSDictionary *authTokens,
+                           NSDictionary<NSString*, NSString*> *authTokens,
                            NSError *error)
          {
              if (error) {
@@ -408,8 +454,8 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
              NSNumber *balance;
              BOOL isAccount;
-             NSDictionary *tokensValid;
-             NSArray *purchasePrices;
+             NSDictionary<NSString*, NSNumber*> *tokensValid;
+             NSArray<PsiCashPurchasePrice*> *purchasePrices;
              [PsiCash parseRefreshStateResponse:data
                                     tokensValid:&tokensValid
                                       isAccount:&isAccount
@@ -432,8 +478,9 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
              // NOTE: Even though there's no error, there could still be no valid tokens,
              // no balance or is-account, and no purchase prices.
 
-             NSDictionary* onlyValidTokens = [PsiCash onlyValidTokens:self->userInfo.authTokens
-                                                          tokensValid:tokensValid];
+             NSDictionary<NSString*, NSString*>* onlyValidTokens =
+                [PsiCash onlyValidTokens:self->userInfo.authTokens
+                             tokensValid:tokensValid];
 
              // If any of our tokens were valid, then the isAccount value from the
              // server is authoritative. Otherwise we'll respect our existing value.
@@ -514,10 +561,10 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 }
 
 + (void)parseRefreshStateResponse:(NSData*_Nonnull)jsonData
-                      tokensValid:(NSDictionary**_Nonnull)tokensValid
+                      tokensValid:(NSDictionary<NSString*, NSNumber*>**_Nonnull)tokensValid
                         isAccount:(BOOL*_Nonnull)isAccount
                           balance:(NSNumber**_Nonnull)balance
-                   purchasePrices:(NSArray**_Nonnull)purchasePrices
+                   purchasePrices:(NSArray<PsiCashPurchasePrice*>**_Nonnull)purchasePrices
                         withError:(NSError**_Nonnull)error
 {
     *error = nil;
@@ -863,7 +910,7 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
 
 - (NSMutableURLRequest*_Nonnull)createRequestFor:(NSString*_Nonnull)path
                                       withMethod:(NSString*_Nonnull)method
-                                  withQueryItems:(NSArray*_Nullable)queryItems
+                                  withQueryItems:(NSArray<NSURLQueryItem*>*_Nullable)queryItems
                                includeAuthTokens:(BOOL)includeAuthTokens
 {
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
@@ -978,7 +1025,8 @@ NSUInteger const REQUEST_RETRY_LIMIT = 2;
     [dataTask resume];
 }
 
-+ (NSDictionary*)onlyValidTokens:(NSDictionary*)authTokens tokensValid:(NSDictionary*)tokensValid
++ (NSDictionary<NSString*, NSString*>*_Nonnull)onlyValidTokens:(NSDictionary*)authTokens
+                                                   tokensValid:(NSDictionary<NSString*, NSNumber*>*)tokensValid
 {
     NSMutableDictionary* onlyValidTokens = [[NSMutableDictionary alloc] init];
 
