@@ -41,7 +41,7 @@
     [super setUp];
     // Put setup code here. This method is called before the invocation of each test method in the class.
 
-    psiCash = [[PsiCash alloc] init];
+    psiCash = [TestHelpers newPsiCash];
 
     XCTestExpectation *exp = [self expectationWithDescription:@"Init tokens"];
 
@@ -332,9 +332,9 @@
 
 - (void)testExpirePurchases {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: getPurchases"];
-    
+
     dispatch_group_t group = dispatch_group_create();
-    
+
     dispatch_group_enter(group);
     dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
         // Start by ensuring we have sufficient balance
@@ -345,7 +345,7 @@
              dispatch_group_leave(group);
          }];
     });
-    
+
     dispatch_group_enter(group);
     dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
         // Start by ensuring we have sufficient balance
@@ -356,12 +356,12 @@
              dispatch_group_leave(group);
          }];
     });
-    
+
     dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        
+
         // Clear out any pre-existing expired purchases.
         [self->psiCash expirePurchases];
-        
+
         [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                             withExpectedPrice:@ONE_TRILLION
@@ -375,7 +375,7 @@
          {
              XCTAssertNil(error);
              XCTAssertEqual(status, PsiCashStatus_Success);
-             
+
              [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                                  withDistinguisher:@TEST_ONE_TRILLION_TEN_SECOND_DISTINGUISHER
                                                  withExpectedPrice:@ONE_TRILLION
@@ -389,22 +389,22 @@
               {
                   XCTAssertNil(error);
                   XCTAssertEqual(status, PsiCashStatus_Success);
-                  
+
                   NSArray *expiredPurchases = [self->psiCash expirePurchases];
                   XCTAssert([expiredPurchases count] == 1);
                   for (PsiCashPurchase *p in expiredPurchases) {
                       XCTAssert([p.ID isEqualToString:transactionID1]);
                   }
-                  
+
                   // Let the longer purchase expire
                   [NSThread sleepForTimeInterval:11.0];
-                  
+
                   expiredPurchases = [self->psiCash expirePurchases];
                   XCTAssert([expiredPurchases count] == 1);
                   for (PsiCashPurchase *p in expiredPurchases) {
                       XCTAssert([p.ID isEqualToString:transactionID2]);
                   }
-                  
+
                   [exp fulfill];
               }];
          }];
