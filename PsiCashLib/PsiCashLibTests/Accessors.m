@@ -331,7 +331,7 @@
 }
 
 - (void)testExpirePurchases {
-    XCTestExpectation *exp = [self expectationWithDescription:@"Success: getPurchases"];
+    XCTestExpectation *exp = [self expectationWithDescription:@"Success: expirePurchases"];
 
     dispatch_group_t group = dispatch_group_create();
 
@@ -406,6 +406,96 @@
                   }
 
                   [exp fulfill];
+              }];
+         }];
+    });
+
+
+    [self waitForExpectationsWithTimeout:100 handler:nil];
+}
+
+- (void)testRemovePurchases {
+    XCTestExpectation *exp = [self expectationWithDescription:@"Success: removePurchases"];
+
+    dispatch_group_t group = dispatch_group_create();
+
+    // Start by ensuring we have sufficient balance
+    for (int i = 0; i < 3; i++) {
+        dispatch_group_enter(group);
+        dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+            [TestHelpers make1TRewardRequest:self->psiCash
+                                  completion:^(BOOL success)
+             {
+                 XCTAssertTrue(success);
+                 dispatch_group_leave(group);
+             }];
+        });
+    }
+
+    dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+
+        // First add and remove a single transaction
+        [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                            withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                            withExpectedPrice:@ONE_TRILLION
+                                               withCompletion:^(PsiCashStatus status,
+                                                                NSNumber*_Nullable price,
+                                                                NSNumber*_Nullable balance,
+                                                                NSDate*_Nullable expiry,
+                                                                NSString*_Nullable transactionID,
+                                                                NSString*_Nullable authorization,
+                                                                NSError*_Nullable error)
+         {
+             XCTAssertNil(error);
+             XCTAssertEqual(status, PsiCashStatus_Success);
+
+             XCTAssert([self->psiCash.purchases count] == 1 &&
+                       [self->psiCash.purchases[0].ID isEqualToString:transactionID]);
+
+             // Remove this transaction
+             [self->psiCash removePurchases:@[transactionID]];
+             XCTAssert([self->psiCash.purchases count] == 0);
+
+             // Now add and remove two transactions
+             [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                                 withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                                 withExpectedPrice:@ONE_TRILLION
+                                                    withCompletion:^(PsiCashStatus status,
+                                                                     NSNumber*_Nullable price,
+                                                                     NSNumber*_Nullable balance,
+                                                                     NSDate*_Nullable expiry,
+                                                                     NSString*_Nullable transactionID1,
+                                                                     NSString*_Nullable authorization,
+                                                                     NSError*_Nullable error)
+              {
+                  XCTAssertNil(error);
+                  XCTAssertEqual(status, PsiCashStatus_Success);
+
+                  XCTAssertEqual([self->psiCash.purchases count], 1);
+                  XCTAssertEqualObjects(self->psiCash.purchases[0].ID, transactionID1);
+
+                  [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                                      withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                                      withExpectedPrice:@ONE_TRILLION
+                                                         withCompletion:^(PsiCashStatus status,
+                                                                          NSNumber*_Nullable price,
+                                                                          NSNumber*_Nullable balance,
+                                                                          NSDate*_Nullable expiry,
+                                                                          NSString*_Nullable transactionID2,
+                                                                          NSString*_Nullable authorization,
+                                                                          NSError*_Nullable error)
+                   {
+                       XCTAssertEqual([self->psiCash.purchases count], 2);
+                       XCTAssertNotEqualObjects(self->psiCash.purchases[0].ID, self->psiCash.purchases[1].ID);
+                       XCTAssert([self->psiCash.purchases[0].ID isEqualToString:transactionID1] || [self->psiCash.purchases[1].ID isEqualToString:transactionID1]);
+                       XCTAssert([self->psiCash.purchases[0].ID isEqualToString:transactionID2] || [self->psiCash.purchases[1].ID isEqualToString:transactionID2]);
+
+                       // Remove the transactions
+                       [self->psiCash removePurchases:@[transactionID1, transactionID2]];
+                       XCTAssertEqual([self->psiCash.purchases count], 0);
+
+                       [exp fulfill];
+                   }];
               }];
          }];
     });
