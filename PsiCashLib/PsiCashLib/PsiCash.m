@@ -163,7 +163,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
         return nil;
     }
 
-    NSMutableArray *expiredPurchases = [[NSMutableArray alloc] init];
+    NSMutableArray<PsiCashPurchase*> *expiredPurchases = [[NSMutableArray alloc] init];
     NSDate *now = [NSDate date];
 
     for (PsiCashPurchase *purchase in purchases) {
@@ -179,6 +179,29 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     [self->userInfo removePurchases:expiredPurchases];
 
     return expiredPurchases;
+}
+
+- (void)removePurchases:(NSArray<NSString*>*_Nonnull)ids
+{
+    if ([ids count] == 0) {
+        return;
+    }
+
+    NSArray<PsiCashPurchase*> *purchases = self->userInfo.purchases;
+
+    if ([purchases count] == 0) {
+        return;
+    }
+
+    NSMutableArray *purchasesToRemove = [[NSMutableArray alloc] init];
+
+    for (PsiCashPurchase *purchase in purchases) {
+        if ([ids containsObject:purchase.ID]) {
+            [purchasesToRemove addObject:purchase];
+        }
+    }
+
+    [self->userInfo removePurchases:purchasesToRemove];
 }
 
 - (NSError*_Nullable)modifyLandingPage:(NSString*_Nonnull)url
