@@ -63,6 +63,9 @@ NSString * const LANDING_PAGE_TOKEN_KEY = @"psicash";
 NSString * const EARNER_TOKEN_TYPE = @"earner";
 
 @implementation PsiCash {
+    NSString *serverScheme;
+    NSString *serverHostname;
+    NSNumber *serverPort;
     UserInfo *userInfo;
     dispatch_queue_t completionQueue;
 }
@@ -72,7 +75,10 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
 - (id)init
 {
     self->completionQueue = dispatch_queue_create("com.psiphon3.PsiCashLib.CompletionQueue", DISPATCH_QUEUE_SERIAL);
-;
+
+    self->serverScheme = PSICASH_SERVER_SCHEME;
+    self->serverHostname = PSICASH_SERVER_HOSTNAME;
+    self->serverPort = [[NSNumber alloc] initWithInt:PSICASH_SERVER_PORT];
 
     // authTokens may still be nil if the value has never been stored.
     self->userInfo = [[UserInfo alloc] init];
@@ -157,7 +163,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
         return nil;
     }
 
-    NSMutableArray *expiredPurchases = [[NSMutableArray alloc] init];
+    NSMutableArray<PsiCashPurchase*> *expiredPurchases = [[NSMutableArray alloc] init];
     NSDate *now = [NSDate date];
 
     for (PsiCashPurchase *purchase in purchases) {
@@ -173,6 +179,29 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     [self->userInfo removePurchases:expiredPurchases];
 
     return expiredPurchases;
+}
+
+- (void)removePurchases:(NSArray<NSString*>*_Nonnull)ids
+{
+    if ([ids count] == 0) {
+        return;
+    }
+
+    NSArray<PsiCashPurchase*> *purchases = self->userInfo.purchases;
+
+    if ([purchases count] == 0) {
+        return;
+    }
+
+    NSMutableArray *purchasesToRemove = [[NSMutableArray alloc] init];
+
+    for (PsiCashPurchase *purchase in purchases) {
+        if ([ids containsObject:purchase.ID]) {
+            [purchasesToRemove addObject:purchase];
+        }
+    }
+
+    [self->userInfo removePurchases:purchasesToRemove];
 }
 
 - (NSError*_Nullable)modifyLandingPage:(NSString*_Nonnull)url
@@ -920,9 +949,9 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     [request setHTTPMethod:method];
 
     NSURLComponents *urlComponents = [[NSURLComponents alloc] init];
-    urlComponents.scheme = PSICASH_SERVER_SCHEME;
-    urlComponents.host = PSICASH_SERVER_HOSTNAME;
-    urlComponents.port = [[NSNumber alloc] initWithInt:PSICASH_SERVER_PORT];
+    urlComponents.scheme = self->serverScheme;
+    urlComponents.host = self->serverHostname;
+    urlComponents.port = self->serverPort;
     urlComponents.path = [PSICASH_API_VERSION_PATH stringByAppendingString:path];
     urlComponents.queryItems = queryItems;
 

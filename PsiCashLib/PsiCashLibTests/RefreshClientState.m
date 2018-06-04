@@ -42,7 +42,7 @@
     [super setUp];
     // Put setup code here. This method is called before the invocation of each test method in the class.
 
-    psiCash = [[PsiCash alloc] init];
+    psiCash = [TestHelpers newPsiCash];
 
     if (mutatorsEnabled == nil) {
         XCTestExpectation *expMutatorsEnabled = [self expectationWithDescription:@"Check if mutators enabled"];

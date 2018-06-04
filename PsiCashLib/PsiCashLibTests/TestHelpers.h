@@ -34,6 +34,11 @@ extern NSString * const EARNER_TOKEN_TYPE;
 
 @interface TestHelpers : NSObject
 
+/*! Create a new instance of PsiCash.
+    Must be used instead of bare alloc-init/new in tests.
+ */
++ (PsiCash*_Nonnull)newPsiCash;
+
 + (UserInfo*_Nonnull)userInfo:(PsiCash*_Nonnull)psiCash;
 
 //! Clears user tokens, etc.

@@ -27,6 +27,20 @@
 #import "UserInfo.h"
 #import "HTTPStatusCodes.h"
 
+
+
+NSString * const TEST_SERVER_SCHEME = @"https";
+NSString * const TEST_SERVER_HOSTNAME = @"dev-api.psi.cash";
+int const TEST_SERVER_PORT = 443;
+
+/*
+// For local testing
+NSString * const TEST_SERVER_SCHEME = @"http";
+NSString * const TEST_SERVER_HOSTNAME = @"localhost";
+int const TEST_SERVER_PORT = 51337;
+*/
+
+
 // Expose some private methods to help with testing
 @interface PsiCash (Testing)
 - (NSMutableURLRequest*_Nonnull)createRequestFor:(NSString*_Nonnull)path
@@ -83,6 +97,17 @@ int requestMutatorsIndex;
 @end
 
 @implementation TestHelpers
+
++ (PsiCash*_Nonnull)newPsiCash
+{
+    PsiCash *psiCash = [[PsiCash alloc] init];
+
+    // Make sure we're running against the test (dev) server.
+    [psiCash setValue:TEST_SERVER_SCHEME forKey:@"serverScheme"];
+    [psiCash setValue:TEST_SERVER_HOSTNAME forKey:@"serverHostname"];
+    [psiCash setValue:[[NSNumber alloc] initWithInt:TEST_SERVER_PORT] forKey:@"serverPort"];
+    return psiCash;
+}
 
 + (UserInfo*_Nonnull)userInfo:(PsiCash*_Nonnull)psiCash
 {
