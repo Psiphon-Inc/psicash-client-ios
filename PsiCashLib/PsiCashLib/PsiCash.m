@@ -709,7 +709,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
 
     // Note the conversion from positive to negative: price to amount.
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"expectedAmount"
-                                                      value:[NSString stringWithFormat:@"-%ld", expectedPrice.integerValue]]];
+                                                      value:[NSString stringWithFormat:@"-%lld", expectedPrice.longLongValue]]];
 
     NSMutableURLRequest *request = [self createRequestFor:@"/transaction"
                                                withMethod:@"POST"
@@ -767,7 +767,8 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
 
              self->userInfo.balance = balance;
 
-             price = @(-transactionAmount.integerValue);
+             // Price is positive, transaction amount is negative.
+             price = [NSNumber numberWithLongLong:-transactionAmount.longLongValue];
          }
 
          if (response.statusCode == kHTTPStatusOK) {
