@@ -253,20 +253,26 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
 {
     NSMutableDictionary<NSString*, NSObject*> *info = [[NSMutableDictionary alloc] init];
 
-    [info setObject:self->userInfo.authTokens forKey:@"authTokens"];
+    [info setObject:(self->userInfo.authTokens ? self->userInfo.authTokens : NSNull.null)
+             forKey:@"authTokens"];
     [info setObject:[NSNumber numberWithBool:self.isAccount] forKey:@"isAccount"];
-    [info setObject:self.balance forKey:@"balance"];
+    [info setObject:(self.balance ? self.balance : NSNull.null)
+             forKey:@"balance"];
     [info setObject:[NSNumber numberWithDouble:self->userInfo.serverTimeDiff] forKey:@"serverTimeDiff"];
 
     NSMutableArray<NSDictionary*> *purchasePricesDicts = [[NSMutableArray alloc] init];
-    for (PsiCashPurchasePrice *pp in self.purchasePrices) {
-        [purchasePricesDicts addObject:[pp toDictionary]];
+    if (self.purchasePrices) {
+        for (PsiCashPurchasePrice *pp in self.purchasePrices) {
+            [purchasePricesDicts addObject:[pp toDictionary]];
+        }
     }
     [info setObject:purchasePricesDicts forKey:@"purchasePrices"];
 
     NSMutableArray<NSDictionary*> *purchasesDicts = [[NSMutableArray alloc] init];
-    for (PsiCashPurchase *p in self.purchases) {
-        [purchasesDicts addObject:[p toDictionary]];
+    if (self.purchases) {
+        for (PsiCashPurchase *p in self.purchases) {
+            [purchasesDicts addObject:[p toDictionary]];
+        }
     }
     [info setObject:purchasesDicts forKey:@"purchases"];
 
