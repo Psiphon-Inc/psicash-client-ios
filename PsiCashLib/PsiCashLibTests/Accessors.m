@@ -682,8 +682,10 @@
                   NSData *jsonData = [NSJSONSerialization dataWithJSONObject:info
                                                                      options:NSJSONWritingPrettyPrinted
                                                                        error:&error];
+                  XCTAssertNil(error);
                   NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                  NSLog(@"%@", jsonString);
+                  //NSLog(@"%@", jsonString);
+                  XCTAssertGreaterThan(jsonString.length, 0);
 
                   [exp fulfill];
               }];
@@ -692,6 +694,22 @@
 
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
+}
+
+- (void)testGetDiagnosticInfoNoState {
+    [TestHelpers clearUserInfo:self->psiCash];
+
+    NSDictionary *info = [self->psiCash getDiagnosticInfo];
+
+    // JSON serialize, partly to ensure it doesn't crash.
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:info
+                                                       options:NSJSONWritingPrettyPrinted
+                                                         error:&error];
+    XCTAssertNil(error);
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    //NSLog(@"%@", jsonString);
+    XCTAssertGreaterThan(jsonString.length, 0);
 }
 
 @end
