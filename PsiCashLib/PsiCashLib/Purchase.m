@@ -24,6 +24,7 @@
 
 #import <Foundation/Foundation.h>
 #import "Purchase.h"
+#import "Utils.h"
 
 #define CODER_VERSION 1
 
@@ -41,6 +42,15 @@ transactionClass:(NSString*_Nonnull)transactionClass
     self.expiry = expiry;
     self.authorization = authorization;
     return self;
+}
+
+- (NSDictionary<NSString*,NSObject*>*_Nonnull)toDictionary
+{
+    return @{@"id": self.ID ? self.ID : NSNull.null,
+             @"class": self.transactionClass ? self.transactionClass : NSNull.null,
+             @"distinguisher": self.distinguisher ? self.distinguisher : NSNull.null,
+             @"expiry": self.expiry ? [Utils iso8601StringFromDate:self.expiry] : NSNull.null,
+             @"authorization": self.authorization ? self.authorization : NSNull.null};
 }
 
 // Enable this object to be serializable into NSUserDefaults as NSData
