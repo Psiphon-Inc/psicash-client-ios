@@ -27,6 +27,7 @@
 #import "UserInfo.h"
 #import "HTTPStatusCodes.h"
 #import "PurchasePrice.h"
+#import "Utils.h"
 
 /* TODO
  - Consider using NSUbiquitousKeyValueStore instead of NSUserDefaults for
@@ -246,6 +247,30 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     *modifiedURL = [NSString stringWithString:urlComponents.string];
 
     return nil;
+}
+
+-(NSDictionary<NSString*, NSObject*>*_Nonnull)getDiagnosticInfo
+{
+    NSMutableDictionary<NSString*, NSObject*> *info = [[NSMutableDictionary alloc] init];
+
+    [info setObject:self->userInfo.authTokens forKey:@"authTokens"];
+    [info setObject:[NSNumber numberWithBool:self.isAccount] forKey:@"isAccount"];
+    [info setObject:self.balance forKey:@"balance"];
+    [info setObject:[NSNumber numberWithDouble:self->userInfo.serverTimeDiff] forKey:@"serverTimeDiff"];
+
+    NSMutableArray<NSDictionary*> *purchasePricesDicts = [[NSMutableArray alloc] init];
+    for (PsiCashPurchasePrice *pp in self.purchasePrices) {
+        [purchasePricesDicts addObject:[pp toDictionary]];
+    }
+    [info setObject:purchasePricesDicts forKey:@"purchasePrices"];
+
+    NSMutableArray<NSDictionary*> *purchasesDicts = [[NSMutableArray alloc] init];
+    for (PsiCashPurchase *p in self.purchases) {
+        [purchasesDicts addObject:[p toDictionary]];
+    }
+    [info setObject:purchasesDicts forKey:@"purchases"];
+
+    return info;
 }
 
 #pragma mark - NewTracker
@@ -927,7 +952,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
             return;
         }
 
-        *expiry = [PsiCash dateFromISO8601String:transactionResponseValues[@"Expires"]];
+        *expiry = [Utils dateFromISO8601String:transactionResponseValues[@"Expires"]];
         if (!*expiry) {
             *error = [NSError errorWithMessage:@"TransactionResponse.Values.Expires failed to parse" fromFunction:__FUNCTION__];
             return;
@@ -1087,21 +1112,6 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     }
 
     return authTokensString;
-}
-
-+ (NSDate*)dateFromISO8601String:(NSString*)dateString
-{
-    // From https://stackoverflow.com/a/17559601/729729
-    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSSZ"];
-    // Always use this locale when parsing fixed format date strings
-    NSLocale *posix = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US_POSIX"];
-    [formatter setLocale:posix];
-    NSDate *date = [formatter dateFromString:dateString];
-
-    // NOTE: NSISO8601DateFormatter totally fails when the date has milliseconds. http://www.openradar.me/29609526
-
-    return date;
 }
 
 + (NSTimeInterval)serverTimeDiff:(NSHTTPURLResponse*)response

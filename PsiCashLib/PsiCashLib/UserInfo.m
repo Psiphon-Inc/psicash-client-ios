@@ -37,7 +37,7 @@ NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-L
 
 @interface UserInfo ()
 {
-NSMutableArray *_purchases; // of PsiCashPurchase
+NSMutableArray<PsiCashPurchase*> *_purchases;
 }
 @end
 

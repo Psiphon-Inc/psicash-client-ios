@@ -29,6 +29,13 @@
 
 @implementation PsiCashPurchasePrice
 
+- (NSDictionary<NSString*,NSObject*>*_Nonnull)toDictionary
+{
+    return @{@"transactionClass": self.transactionClass ? self.transactionClass : NSNull.null,
+             @"distinguisher": self.distinguisher ? self.distinguisher : NSNull.null,
+             @"price": self.price ? self.price : NSNull.null};
+}
+
 // Enable this object to be serializable into NSUserDefaults as NSData
 - (instancetype _Nullable)initWithCoder:(NSCoder*_Nonnull)decoder
 {

@@ -92,6 +92,43 @@
     XCTAssertEqual(adjustment, 1000.0);
 }
 
+- (void)testGetPurchasePrices {
+    XCTestExpectation *exp = [self expectationWithDescription:@"Success: getPurchasePrices"];
+
+    [self->psiCash refreshState:@[@"speed-boost"] withCompletion:^(PsiCashStatus status,
+                                                                   NSArray * _Nullable validTokenTypes,
+                                                                   BOOL isAccount,
+                                                                   NSNumber * _Nullable balance,
+                                                                   NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
+                                                                   NSError * _Nullable error)
+     {
+         XCTAssertNil(error);
+         XCTAssertEqual(status, PsiCashStatus_Success);
+
+         XCTAssertGreaterThan(self->psiCash.purchasePrices.count, 0);
+
+         // Make sure the stored purchase prices are the same as the returned ones.
+         XCTAssertEqual(purchasePrices.count, self->psiCash.purchasePrices.count);
+         for (PsiCashPurchasePrice *pp in purchasePrices) {
+             BOOL found = NO;
+             for (PsiCashPurchasePrice *ppp in self->psiCash.purchasePrices) {
+                 if ([pp.transactionClass isEqualToString:ppp.transactionClass] &&
+                     [pp.distinguisher isEqualToString:ppp.distinguisher] &&
+                     [pp.price isEqualToNumber:ppp.price]) {
+                     found = YES;
+                 }
+             }
+
+             XCTAssertTrue(found);
+         }
+
+         [exp fulfill];
+     }];
+
+
+    [self waitForExpectationsWithTimeout:100 handler:nil];
+}
+
 - (void)testGetPurchases {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: getPurchases"];
 
@@ -583,6 +620,78 @@
     XCTAssertNil(err);
     expected = [NSString stringWithFormat:@"http://sub.example.com/x/y/z.html?a=b&%@=mytoken#anchor", LANDING_PAGE_TOKEN_KEY];
     XCTAssert([result isEqualToString:expected]);
+}
+
+- (void)testGetDiagnosticInfo {
+    XCTestExpectation *exp = [self expectationWithDescription:@"Success: getDiagnosticInfo"];
+
+    dispatch_group_t group = dispatch_group_create();
+
+    dispatch_group_enter(group);
+    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+        // Start by ensuring we have sufficient balance
+        [TestHelpers make1TRewardRequest:self->psiCash
+                              completion:^(BOOL success)
+         {
+             XCTAssertTrue(success);
+             dispatch_group_leave(group);
+         }];
+    });
+
+    dispatch_group_enter(group);
+    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+        // Start by ensuring we have sufficient balance
+        [TestHelpers make1TRewardRequest:self->psiCash
+                              completion:^(BOOL success)
+         {
+             XCTAssertTrue(success);
+             dispatch_group_leave(group);
+         }];
+    });
+
+    dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+
+        [self->psiCash refreshState:@[@"speed-boost"] withCompletion:^(PsiCashStatus status,
+                                                                       NSArray * _Nullable validTokenTypes,
+                                                                       BOOL isAccount,
+                                                                       NSNumber * _Nullable balance,
+                                                                       NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
+                                                                       NSError * _Nullable error)
+         {
+             XCTAssertNil(error);
+             XCTAssertEqual(status, PsiCashStatus_Success);
+
+
+             [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                                 withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                                 withExpectedPrice:@ONE_TRILLION
+                                                    withCompletion:^(PsiCashStatus status,
+                                                                     NSNumber*_Nullable price,
+                                                                     NSNumber*_Nullable balance,
+                                                                     NSDate*_Nullable expiry,
+                                                                     NSString*_Nullable transactionID1,
+                                                                     NSString*_Nullable authorization,
+                                                                     NSError*_Nullable error)
+              {
+                  XCTAssertNil(error);
+                  XCTAssertEqual(status, PsiCashStatus_Success);
+
+                  NSDictionary *info = [self->psiCash getDiagnosticInfo];
+
+                  // JSON serialize, partly to ensure it doesn't crash.
+                  NSData *jsonData = [NSJSONSerialization dataWithJSONObject:info
+                                                                     options:NSJSONWritingPrettyPrinted
+                                                                       error:&error];
+                  NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                  NSLog(@"%@", jsonString);
+
+                  [exp fulfill];
+              }];
+         }];
+    });
+
+
+    [self waitForExpectationsWithTimeout:100 handler:nil];
 }
 
 @end
