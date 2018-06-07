@@ -18,23 +18,18 @@
  */
 
 //
-//  PurchasePrice.h
+//  Utils.h
 //  PsiCashLib
 //
 
-#ifndef PurchasePrice_h
-#define PurchasePrice_h
+#ifndef Utils_h
+#define Utils_h
 
-#import <Foundation/Foundation.h>
+@interface Utils : NSObject
 
++ (NSDate*_Nullable)dateFromISO8601String:(NSString*_Nonnull)dateString;
++ (NSString*_Nonnull)iso8601StringFromDate:(NSDate*_Nonnull)date;
 
-@interface PsiCashPurchasePrice : NSObject <NSCoding>
-@property NSString*_Nonnull transactionClass;
-@property NSString*_Nonnull distinguisher;
-@property NSNumber*_Nonnull price;
-
-- (NSDictionary<NSString*,NSObject*>*_Nonnull)toDictionary;
 @end
 
-
-#endif /* PurchasePrice_h */
+#endif /* Utils_h */
