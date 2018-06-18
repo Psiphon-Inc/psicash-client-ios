@@ -84,8 +84,9 @@
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: simple"];
 
     // Start by ensuring we have sufficient balance
-    [TestHelpers make1TRewardRequest:psiCash
-                          completion:^(BOOL success)
+    [TestHelpers makeRewardRequests:psiCash
+                             amount:1
+                         completion:^(BOOL success)
      {
          XCTAssert(success);
 
@@ -189,8 +190,9 @@
     XCTestExpectation *exp = [self expectationWithDescription:@"Failure: existing transaction"];
 
     // Start by ensuring we have sufficient balance
-    [TestHelpers make1TRewardRequest:psiCash
-                          completion:^(BOOL success)
+    [TestHelpers makeRewardRequests:psiCash
+                             amount:1
+                         completion:^(BOOL success)
      {
          XCTAssert(success);
 

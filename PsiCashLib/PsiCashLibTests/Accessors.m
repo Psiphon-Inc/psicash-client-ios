@@ -132,80 +132,61 @@
 - (void)testGetPurchases {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: getPurchases"];
 
-    dispatch_group_t group = dispatch_group_create();
+    // Start by ensuring we have sufficient balance
+    [TestHelpers makeRewardRequests:self->psiCash
+                             amount:2
+                         completion:^(BOOL success)
+     {
+         XCTAssertTrue(success);
 
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-
-        // Clear out any pre-existing expired purchases.
-        [self->psiCash expirePurchases];
+         // Clear out any pre-existing expired purchases.
+         [self->psiCash expirePurchases];
 
 
-        [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                            withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
-                                            withExpectedPrice:@ONE_TRILLION
-                                               withCompletion:^(PsiCashStatus status,
-                                                                NSNumber*_Nullable price,
-                                                                NSNumber*_Nullable balance,
-                                                                NSDate*_Nullable expiry,
-                                                                NSString*_Nullable transactionID1,
-                                                                NSString*_Nullable authorization,
-                                                                NSError*_Nullable error)
-         {
-             XCTAssertNil(error);
-             XCTAssertEqual(status, PsiCashStatus_Success);
+         [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                             withExpectedPrice:@ONE_TRILLION
+                                                withCompletion:^(PsiCashStatus status,
+                                                                 NSNumber*_Nullable price,
+                                                                 NSNumber*_Nullable balance,
+                                                                 NSDate*_Nullable expiry,
+                                                                 NSString*_Nullable transactionID1,
+                                                                 NSString*_Nullable authorization,
+                                                                 NSError*_Nullable error)
+          {
+              XCTAssertNil(error);
+              XCTAssertEqual(status, PsiCashStatus_Success);
 
-             NSArray *purchases = self->psiCash.purchases;
-             XCTAssert([purchases count] == 1);
-             for (PsiCashPurchase *p in purchases) {
-                 XCTAssertEqualObjects(p.ID, transactionID1);
-             }
+              NSArray *purchases = self->psiCash.purchases;
+              XCTAssert([purchases count] == 1);
+              for (PsiCashPurchase *p in purchases) {
+                  XCTAssertEqualObjects(p.ID, transactionID1);
+              }
 
-             [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
-                                                 withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
-                                                 withExpectedPrice:@ONE_TRILLION
-                                                    withCompletion:^(PsiCashStatus status,
-                                                                     NSNumber*_Nullable price,
-                                                                     NSNumber*_Nullable balance,
-                                                                     NSDate*_Nullable expiry,
-                                                                     NSString*_Nullable transactionID2,
-                                                                     NSString*_Nullable authorization,
-                                                                     NSError*_Nullable error)
-              {
-                  XCTAssertNil(error);
-                  XCTAssertEqual(status, PsiCashStatus_Success);
+              [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                                  withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                                  withExpectedPrice:@ONE_TRILLION
+                                                     withCompletion:^(PsiCashStatus status,
+                                                                      NSNumber*_Nullable price,
+                                                                      NSNumber*_Nullable balance,
+                                                                      NSDate*_Nullable expiry,
+                                                                      NSString*_Nullable transactionID2,
+                                                                      NSString*_Nullable authorization,
+                                                                      NSError*_Nullable error)
+               {
+                   XCTAssertNil(error);
+                   XCTAssertEqual(status, PsiCashStatus_Success);
 
-                  NSArray *purchases = self->psiCash.purchases;
-                  XCTAssert([purchases count] == 2);
-                  for (PsiCashPurchase *p in purchases) {
-                      XCTAssert([p.ID isEqualToString:transactionID1] || [p.ID isEqualToString:transactionID2]);
-                  }
+                   NSArray *purchases = self->psiCash.purchases;
+                   XCTAssert([purchases count] == 2);
+                   for (PsiCashPurchase *p in purchases) {
+                       XCTAssert([p.ID isEqualToString:transactionID1] || [p.ID isEqualToString:transactionID2]);
+                   }
 
-                  [exp fulfill];
-              }];
-         }];
-    });
+                   [exp fulfill];
+               }];
+          }];
+     }];
 
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
@@ -214,31 +195,12 @@
 - (void)testNextExpiringPurchase1 {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: nextExpiringPurchase; long then short"];
 
-    dispatch_group_t group = dispatch_group_create();
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-            // Start by ensuring we have sufficient balance
-            [TestHelpers make1TRewardRequest:self->psiCash
-                                  completion:^(BOOL success)
-             {
-                 XCTAssertTrue(success);
-                 dispatch_group_leave(group);
-             }];
-    });
-
-    dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+    // Start by ensuring we have sufficient balance
+    [TestHelpers makeRewardRequests:self->psiCash
+                             amount:2
+                         completion:^(BOOL success)
+     {
+         XCTAssertTrue(success);
 
         // Clear out any pre-existing expired purchases.
         [self->psiCash expirePurchases];
@@ -282,7 +244,7 @@
                   [exp fulfill];
               }];
          }];
-    });
+    }];
 
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
@@ -291,31 +253,12 @@
 - (void)testNextExpiringPurchase2 {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: nextExpiringPurchase; short then long"];
 
-    dispatch_group_t group = dispatch_group_create();
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+    // Start by ensuring we have sufficient balance
+    [TestHelpers makeRewardRequests:self->psiCash
+                             amount:2
+                         completion:^(BOOL success)
+     {
+         XCTAssertTrue(success);
 
         // Clear out any pre-existing purchases.
         [TestHelpers userInfo:self->psiCash].purchases = nil;
@@ -361,7 +304,7 @@
                   [exp fulfill];
               }];
          }];
-    });
+    }];
 
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
@@ -370,31 +313,12 @@
 - (void)testExpirePurchases {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: expirePurchases"];
 
-    dispatch_group_t group = dispatch_group_create();
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+    // Start by ensuring we have sufficient balance
+    [TestHelpers makeRewardRequests:self->psiCash
+                             amount:2
+                         completion:^(BOOL success)
+     {
+         XCTAssertTrue(success);
 
         // Clear out any pre-existing expired purchases.
         [self->psiCash expirePurchases];
@@ -445,7 +369,7 @@
                   [exp fulfill];
               }];
          }];
-    });
+    }];
 
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
@@ -454,22 +378,12 @@
 - (void)testRemovePurchases {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: removePurchases"];
 
-    dispatch_group_t group = dispatch_group_create();
-
     // Start by ensuring we have sufficient balance
-    for (int i = 0; i < 3; i++) {
-        dispatch_group_enter(group);
-        dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-            [TestHelpers make1TRewardRequest:self->psiCash
-                                  completion:^(BOOL success)
-             {
-                 XCTAssertTrue(success);
-                 dispatch_group_leave(group);
-             }];
-        });
-    }
-
-    dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+    [TestHelpers makeRewardRequests:self->psiCash
+                             amount:3
+                         completion:^(BOOL success)
+     {
+         XCTAssertTrue(success);
 
         // First add and remove a single transaction
         [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
@@ -535,7 +449,7 @@
                    }];
               }];
          }];
-    });
+    }];
 
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
@@ -625,31 +539,12 @@
 - (void)testGetDiagnosticInfo {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: getDiagnosticInfo"];
 
-    dispatch_group_t group = dispatch_group_create();
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_enter(group);
-    dispatch_group_async(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
-        // Start by ensuring we have sufficient balance
-        [TestHelpers make1TRewardRequest:self->psiCash
-                              completion:^(BOOL success)
-         {
-             XCTAssertTrue(success);
-             dispatch_group_leave(group);
-         }];
-    });
-
-    dispatch_group_notify(group,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^ {
+    // Start by ensuring we have sufficient balance
+    [TestHelpers makeRewardRequests:self->psiCash
+                             amount:2
+                         completion:^(BOOL success)
+     {
+         XCTAssertTrue(success);
 
         [self->psiCash refreshState:@[@"speed-boost"] withCompletion:^(PsiCashStatus status,
                                                                        NSArray * _Nullable validTokenTypes,
@@ -690,7 +585,7 @@
                   [exp fulfill];
               }];
          }];
-    });
+    }];
 
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
