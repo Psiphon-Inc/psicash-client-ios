@@ -209,5 +209,30 @@ int requestMutatorsIndex;
     return [a isEqual:b];
 }
 
++ (void)makeRewardRequests:(PsiCash*_Nonnull)psiCash
+                    amount:(int)trillions
+                completion:(void (^_Nonnull)(BOOL success))completionHandler
+{
+    if (trillions <= 0) {
+        completionHandler(YES);
+        return;
+    }
+
+    [TestHelpers make1TRewardRequest:psiCash
+                          completion:^(BOOL success)
+     {
+         if (!success) {
+             completionHandler(NO);
+             return;
+         }
+
+         // Short sleep to avoid DB transaction issues.
+         [NSThread sleepForTimeInterval:0.1];
+
+         // Recurse
+         [TestHelpers makeRewardRequests:psiCash amount:trillions-1 completion:completionHandler];
+     }];
+}
+
 @end
 

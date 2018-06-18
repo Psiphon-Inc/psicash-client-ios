@@ -256,8 +256,9 @@
          XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
 
          // Make a reward request so that we can test an increased balance.
-         [TestHelpers make1TRewardRequest:self->psiCash
-                               completion:^(BOOL success)
+         [TestHelpers makeRewardRequests:psiCash
+                                  amount:1
+                              completion:^(BOOL success)
           {
               XCTAssert(success);
 

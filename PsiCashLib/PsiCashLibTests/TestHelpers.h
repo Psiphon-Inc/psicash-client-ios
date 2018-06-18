@@ -56,8 +56,9 @@ extern NSString * const EARNER_TOKEN_TYPE;
 + (void)checkMutatorSupport:(PsiCash*_Nonnull)psiCash
                  completion:(void (^_Nonnull)(BOOL supported))completionHandler;
 
-+ (void)make1TRewardRequest:(PsiCash*_Nonnull)psiCash
-                 completion:(void (^_Nonnull)(BOOL success))completionHandler;
++ (void)makeRewardRequests:(PsiCash*_Nonnull)psiCash
+                    amount:(int)trillions
+                completion:(void (^_Nonnull)(BOOL success))completionHandler;
 
 //! Equality test with nil support
 + (BOOL)is:(id)a equalTo:(id)b;
