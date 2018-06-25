@@ -57,6 +57,9 @@ int const TEST_SERVER_PORT = 51337;
 - (void)setRequestMutators:(NSArray*)mutators;
 - (void)clearRequestMutators;
 - (void)requestMutator:(NSMutableURLRequest*)request;
+
+- (NSDate*_Nullable)adjustServerTimeToLocal:(NSDate*_Nullable)date;
+- (NSDate*_Nullable)adjustLocalTimeToServer:(NSDate*_Nullable)date;
 @end
 
 @implementation PsiCash (Testing)
@@ -122,6 +125,11 @@ int requestMutatorsIndex;
 + (void)setIsAccount:(PsiCash*_Nonnull)psiCash
 {
     [[psiCash valueForKey:@"userInfo"] setIsAccount:YES];
+}
+
++ (void)setServerTimeDiff:(PsiCash*_Nonnull)psiCash to:(NSTimeInterval)serverTimeDiff
+{
+    [[psiCash valueForKey:@"userInfo"] setServerTimeDiff:serverTimeDiff];
 }
 
 + (NSDictionary*)getAuthTokens:(PsiCash*_Nonnull)psiCash

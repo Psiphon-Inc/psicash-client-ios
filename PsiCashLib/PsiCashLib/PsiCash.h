@@ -66,13 +66,12 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 - (NSArray<PsiCashPurchasePrice*>*_Nullable)purchasePrices;
 /*! Returns the set of active purchases. May be nil or empty. */
 - (NSArray<PsiCashPurchase*>*_Nullable)purchases;
-/*! Returns a date adjusted for the time difference between client and server. */
-- (NSDate*_Nonnull)adjustForServerTimeDiff:(NSDate*_Nonnull)date;
-/*! Get the next expiring purchase and its expiry, adjusted for client-server
-    time difference. Returns NO if there is no outstanding expiring purchase
-    (or no outstanding purchases at all). */
-- (BOOL)nextExpiringPurchase:(PsiCashPurchase*_Nonnull*_Nullable)purchase
-                      expiry:(NSDate*_Nonnull*_Nullable)expiry;
+/*! Returns the set of active purchases that are no expired. May be nil or empty. */
+- (NSArray<PsiCashPurchase*>*_Nullable)validPurchases;
+/*! Get the next expiring purchase (with localTimeExpiry populated). Returns nil
+    if there is no outstanding expiring purchase (or no outstanding purchases at
+    all). The returned purchase may already be expired. */
+- (PsiCashPurchase*_Nullable)nextExpiringPurchase;
 /*! Clear out expired purchases. Return the ones that were expired. Returns nil
     if none were expired. */
 - (NSArray<PsiCashPurchase*>*_Nullable)expirePurchases;
@@ -97,7 +96,20 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 
 /*!
  Refreshes the client state. Retrieves info about whether the user has an
- account (vs tracker), balance, valid token types, and purchase prices.
+ account (vs tracker), balance, valid token types, and purchase prices. After a
+ successful request, the retrieved values can be accessed with the accessor
+ methods.
+
+ If there are no tokens stored locally (e.g., if this is the first run), then
+ new tracker tokens will obtained.
+
+ If the user is/has an Account, then it is possible some tokens will be invalid
+ (they expire at different rates). Login may be necessary before spending, etc.
+ (It's even possible that validTokenTypes is empty -- i.e., there are no valid
+ tokens.)
+
+ If there is no valid indicator token, then balance and purchasePrices will be
+ nil, but there may be stored (possibly stale) values that can be used.
 
  Input parameters:
 
@@ -106,27 +118,7 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 
  Completion handler parameters:
 
- • validTokenTypes: Will contain the available valid token types, like:
-   @code ["earner", "indicator", "spender"] @endcode
-
-   If there are no tokens stored locally (e.g., if this is the first run), then
-   new tracker tokens will obtained.
-
-   If isAccount is true, then it is possible that not all expected tokens will be
-   returned valid (they expire at different rates). Login may be necessary
-   before spending, etc. (It's even possible that validTokenTypes is empty --
-   i.e., there are no valid tokens.)
-
-   If there is no valid indicator token, then balance and purchasePrices will be nil.
-
- • isAccount: Will be true if the tokens belong to an Account or false if a Tracker.
-
- • balance: The current balance of the user (tracker or account). Nil if there is
-   no valid indicator token.
-
- • purchasePrices: An array of PsiCashPurchasePrice objects. May be emtpy if no
-   transaction types of the given class(es) are found, or no classes where provided.
-   Nil if there is no valid indicator token.
+ • status: Request success indicator. See below for possible values.
 
  • error: If non-nil, the request failed utterly and no other params are valid.
 
@@ -146,10 +138,6 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
  */
 - (void)refreshState:(NSArray<NSString*>*_Nonnull)purchaseClasses
       withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                       NSArray<NSString*>*_Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber*_Nullable balance,
-                                       NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
                                        NSError*_Nullable error))completionHandler;
 
 #pragma mark - NewTransaction
@@ -170,36 +158,24 @@ Completion handler parameters:
 
  • status: Indicates whether the request succeeded or which failure condition occurred.
 
- • price: Indicates the price of the purchase. In success cases, will match the
-   expectedPrice input. Nil if indicator token was not provided.
-
- • balance: The user's balance, newly updated if a successful purchase occurred.
-   Nil if indicator token was not provided.
-
- • expiry: When the purchase is valid until (adjusted for client-server time difference).
-
- • authorization: The purchase authorization, if applicable to the purchase class
-   (i.e., "speed-boost"). Nil if not applicable.
+ • purchase: The resulting purchase. Nil if request was not successful.
 
  • error: If non-nil, the request failed utterly and no other params are valid.
 
  Possible status codes:
 
  • PsiCashStatus_Success: The purchase transaction was successful. All completion
-   handler arguments will be valid (authorization only if applicable).
+   handler arguments will be valid.
 
  • PsiCashStatus_ExistingTransaction: There is already a non-expired purchase that
-   prevents this purchase from proceeding. price and balance will be valid. expiry
-   will be valid and will be set to the expiry of the existing purchase. This
-   status suggests that a purchase retrieval is necessary (because an outstanding
-   purchase is no known locally).
+   prevents this purchase from proceeding.
 
  • PsiCashStatus_InsufficientBalance: The user does not have sufficient Psi to make
-   the requested purchase. price and balance are valid.
+   the requested purchase. Stored balance will be updated and UI should be refreshed.
 
  • PsiCashStatus_TransactionAmountMismatch: The actual purchase price does not match
    expectedPrice, so the purchase cannot proceed. The price list should be updated
-   immediately. price and balance are valid.
+   immediately. 
 
  • PsiCashStatus_TransactionTypeNotFound: A transaction type with the given class and
    distinguisher could not be found. The price list should be updated immediately,
@@ -216,11 +192,7 @@ Completion handler parameters:
                              withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
                              withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
                                 withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                                                 NSNumber*_Nullable price,
-                                                                 NSNumber*_Nullable balance,
-                                                                 NSDate*_Nullable expiry,
-                                                                 NSString*_Nullable transactionID,
-                                                                 NSString*_Nullable authorization,
+                                                                 PsiCashPurchase*_Nullable purchase,
                                                                  NSError*_Nullable error))completion;
 
 @end

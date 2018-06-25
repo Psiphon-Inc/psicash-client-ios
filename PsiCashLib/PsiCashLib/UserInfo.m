@@ -180,11 +180,11 @@ NSMutableArray<PsiCashPurchase*> *_purchases;
     }
 }
 
-- (void)setPurchases:(NSArray<PsiCashPurchase*>*)purchases
+- (void)setPurchases:(NSArray<PsiCashPurchase*>*_Nonnull)purchases
 {
     @synchronized(self)
     {
-        self->_purchases = [NSMutableArray arrayWithArray:purchases];
+        self->_purchases = [purchases mutableCopy];
 
         // Don't keep null items.
         [self->_purchases removeObjectIdenticalTo:[NSNull null]];
@@ -194,12 +194,8 @@ NSMutableArray<PsiCashPurchase*> *_purchases;
     }
 }
 
-- (void)addPurchase:(PsiCashPurchase*)purchase
+- (void)addPurchase:(PsiCashPurchase*_Nonnull)purchase
 {
-    if (!purchase) {
-        return;
-    }
-
     @synchronized(self)
     {
         if (!self->_purchases) {
@@ -212,34 +208,6 @@ NSMutableArray<PsiCashPurchase*> *_purchases;
 
         // Also set the lastTransactionID
         self.lastTransactionID = purchase.ID;
-    }
-}
-
-- (void)removePurchases:(NSArray<PsiCashPurchase*>*_Nonnull)purchases
-{
-    @synchronized(self)
-    {
-        NSMutableIndexSet *indexesToRemove = [[NSMutableIndexSet alloc] init];
-
-        for (PsiCashPurchase *purchaseToRemove in purchases) {
-            if (!purchaseToRemove) {
-                continue;
-            }
-
-            for (int i = 0; i < [self->_purchases count]; i++) {
-                PsiCashPurchase *existingPurchase = self->_purchases[i];
-
-                if (existingPurchase && [purchaseToRemove.ID isEqualToString:existingPurchase.ID]) {
-                    [indexesToRemove addIndex:i];
-                    break;
-                }
-            }
-        }
-
-        [self->_purchases removeObjectsAtIndexes:indexesToRemove];
-
-        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self->_purchases];
-        [[NSUserDefaults standardUserDefaults] setObject:data forKey:PURCHASES_DEFAULTS_KEY];
     }
 }
 

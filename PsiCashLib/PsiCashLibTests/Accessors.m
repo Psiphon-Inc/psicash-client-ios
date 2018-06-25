@@ -27,11 +27,19 @@
 #import "SecretTestValues.h"
 
 
+// Expose some private methods to help with testing
+@interface PsiCash (Testing)
+- (NSDate*_Nullable)adjustServerTimeToLocal:(NSDate*_Nullable)date;
+- (NSDate*_Nullable)adjustLocalTimeToServer:(NSDate*_Nullable)date;
+@end
+
+
 @interface AccessorsTests : XCTestCase
 
 @property PsiCash *psiCash;
 
 @end
+
 
 @implementation AccessorsTests
 
@@ -46,10 +54,6 @@
     XCTestExpectation *exp = [self expectationWithDescription:@"Init tokens"];
 
     [psiCash refreshState:@[] withCompletion:^(PsiCashStatus status,
-                                               NSArray * _Nullable validTokenTypes,
-                                               BOOL isAccount,
-                                               NSNumber * _Nullable balance,
-                                               NSArray * _Nullable purchasePrices,
                                                NSError * _Nullable error) {
         XCTAssertNil(error);
         XCTAssertEqual(status, PsiCashStatus_Success);
@@ -73,54 +77,66 @@
     [super tearDown];
 }
 
-- (void)testServerTimeAdjustment {
-    NSDate *now = [NSDate date];
+- (void)testAdjustServerTimeToLocal {
+    NSDate *arbitraryDate = [NSDate date];
 
     // Positive server time diff means the server clock is ahead.
     [TestHelpers userInfo:self->psiCash].serverTimeDiff = 1000.0;
-    NSDate *adjusted = [psiCash adjustForServerTimeDiff:now];
+    NSDate *adjusted = [psiCash adjustServerTimeToLocal:arbitraryDate];
+    XCTAssertNotNil(adjusted);
 
-    // If the server thinks the exiry is 09:00, but the server is 1000 secs ahead
+    // If the server thinks the expiry is 09:00, but the server is 1000 secs ahead
     // of the client, then the client needs to consider the expiry to be 09:00 - 1000secs.
-    NSTimeInterval adjustment = [adjusted timeIntervalSinceDate:now];
+    NSTimeInterval adjustment = [adjusted timeIntervalSinceDate:arbitraryDate];
     XCTAssertEqual(adjustment, -1000.0);
 
     // Negative server time diff means the server clock is behind.
     [TestHelpers userInfo:self->psiCash].serverTimeDiff = -1000.0;
-    adjusted = [psiCash adjustForServerTimeDiff:now];
-    adjustment = [adjusted timeIntervalSinceDate:now];
+    adjusted = [psiCash adjustServerTimeToLocal:arbitraryDate];
+    XCTAssertNotNil(adjusted);
+    adjustment = [adjusted timeIntervalSinceDate:arbitraryDate];
     XCTAssertEqual(adjustment, 1000.0);
+
+    // Test nil
+    adjusted = [psiCash adjustServerTimeToLocal:nil];
+    XCTAssertNil(adjusted);
+}
+
+- (void)testAdjustLocalTimeToServer {
+    NSDate *arbitraryDate = [NSDate date];
+
+    // Positive server time diff means the server clock is ahead.
+    [TestHelpers userInfo:self->psiCash].serverTimeDiff = 1000.0;
+    NSDate *adjusted = [psiCash adjustLocalTimeToServer:arbitraryDate];
+    XCTAssertNotNil(adjusted);
+
+    // If the client thinks the expiry is 09:00, but the server is 1000 secs ahead
+    // of the client, then the server thinks the expiry is 09:00 + 1000secs.
+    NSTimeInterval adjustment = [adjusted timeIntervalSinceDate:arbitraryDate];
+    XCTAssertEqual(adjustment, 1000.0);
+
+    // Negative server time diff means the server clock is behind.
+    [TestHelpers userInfo:self->psiCash].serverTimeDiff = -1000.0;
+    adjusted = [psiCash adjustLocalTimeToServer:arbitraryDate];
+    XCTAssertNotNil(adjusted);
+    adjustment = [adjusted timeIntervalSinceDate:arbitraryDate];
+    XCTAssertEqual(adjustment, -1000.0);
+
+    // Test nil
+    adjusted = [psiCash adjustLocalTimeToServer:nil];
+    XCTAssertNil(adjusted);
 }
 
 - (void)testGetPurchasePrices {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: getPurchasePrices"];
 
     [self->psiCash refreshState:@[@"speed-boost"] withCompletion:^(PsiCashStatus status,
-                                                                   NSArray * _Nullable validTokenTypes,
-                                                                   BOOL isAccount,
-                                                                   NSNumber * _Nullable balance,
-                                                                   NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
                                                                    NSError * _Nullable error)
      {
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_Success);
 
          XCTAssertGreaterThan(self->psiCash.purchasePrices.count, 0);
-
-         // Make sure the stored purchase prices are the same as the returned ones.
-         XCTAssertEqual(purchasePrices.count, self->psiCash.purchasePrices.count);
-         for (PsiCashPurchasePrice *pp in purchasePrices) {
-             BOOL found = NO;
-             for (PsiCashPurchasePrice *ppp in self->psiCash.purchasePrices) {
-                 if ([pp.transactionClass isEqualToString:ppp.transactionClass] &&
-                     [pp.distinguisher isEqualToString:ppp.distinguisher] &&
-                     [pp.price isEqualToNumber:ppp.price]) {
-                     found = YES;
-                 }
-             }
-
-             XCTAssertTrue(found);
-         }
 
          [exp fulfill];
      }];
@@ -147,11 +163,7 @@
                                              withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                              withExpectedPrice:@ONE_TRILLION
                                                 withCompletion:^(PsiCashStatus status,
-                                                                 NSNumber*_Nullable price,
-                                                                 NSNumber*_Nullable balance,
-                                                                 NSDate*_Nullable expiry,
-                                                                 NSString*_Nullable transactionID1,
-                                                                 NSString*_Nullable authorization,
+                                                                 PsiCashPurchase*_Nullable purchase1,
                                                                  NSError*_Nullable error)
           {
               XCTAssertNil(error);
@@ -160,18 +172,14 @@
               NSArray *purchases = self->psiCash.purchases;
               XCTAssert([purchases count] == 1);
               for (PsiCashPurchase *p in purchases) {
-                  XCTAssertEqualObjects(p.ID, transactionID1);
+                  XCTAssertEqualObjects(p.ID, purchase1.ID);
               }
 
               [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                                   withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                                   withExpectedPrice:@ONE_TRILLION
                                                      withCompletion:^(PsiCashStatus status,
-                                                                      NSNumber*_Nullable price,
-                                                                      NSNumber*_Nullable balance,
-                                                                      NSDate*_Nullable expiry,
-                                                                      NSString*_Nullable transactionID2,
-                                                                      NSString*_Nullable authorization,
+                                                                      PsiCashPurchase*_Nullable purchase2,
                                                                       NSError*_Nullable error)
                {
                    XCTAssertNil(error);
@@ -180,8 +188,77 @@
                    NSArray *purchases = self->psiCash.purchases;
                    XCTAssert([purchases count] == 2);
                    for (PsiCashPurchase *p in purchases) {
-                       XCTAssert([p.ID isEqualToString:transactionID1] || [p.ID isEqualToString:transactionID2]);
+                       XCTAssert([p.ID isEqualToString:purchase1.ID] || [p.ID isEqualToString:purchase2.ID]);
                    }
+
+                   [exp fulfill];
+               }];
+          }];
+     }];
+
+
+    [self waitForExpectationsWithTimeout:100 handler:nil];
+}
+
+- (void)testValidPurchases {
+    XCTestExpectation *exp = [self expectationWithDescription:@"Success: validPurchases"];
+
+    // Start by ensuring we have sufficient balance
+    [TestHelpers makeRewardRequests:self->psiCash
+                             amount:2
+                         completion:^(BOOL success)
+     {
+         XCTAssertTrue(success);
+
+         // Clear out any pre-existing expired purchases.
+         [self->psiCash expirePurchases];
+
+         // Make a fast-expiring purchase
+         [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                             withExpectedPrice:@ONE_TRILLION
+                                                withCompletion:^(PsiCashStatus status,
+                                                                 PsiCashPurchase*_Nullable purchase1,
+                                                                 NSError*_Nullable error)
+          {
+              XCTAssertNil(error);
+              XCTAssertEqual(status, PsiCashStatus_Success);
+              XCTAssertNotNil(purchase1);
+
+              // Make a long-expiring purchase
+              [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                                  withDistinguisher:@TEST_ONE_TRILLION_TEN_SECOND_DISTINGUISHER
+                                                  withExpectedPrice:@ONE_TRILLION
+                                                     withCompletion:^(PsiCashStatus status,
+                                                                      PsiCashPurchase*_Nullable purchase2,
+                                                                      NSError*_Nullable error)
+               {
+                   XCTAssertNil(error);
+                   XCTAssertEqual(status, PsiCashStatus_Success);
+                   XCTAssertNotNil(purchase2);
+
+                   XCTAssertEqual([self->psiCash purchases].count, 2);
+
+                   // Wait long enough that the short purchase is likely to have expired.
+                   [NSThread sleepForTimeInterval:5.0];
+
+                   NSArray<PsiCashPurchase*> *validPurchases = [self->psiCash validPurchases];
+                   XCTAssertNotNil(validPurchases);
+
+                   // NOTE: Incorrect server time diff may mess up this test.
+                   XCTAssertEqual([validPurchases count], 1);
+
+                   // Ensure validPurchases didn't alter the stored set of purchases.
+                   XCTAssertEqual([[self->psiCash purchases] count], 2);
+
+                   // Wait for the longer-lived purchase to expire.
+                   [NSThread sleepForTimeInterval:10.0];
+
+                   XCTAssertEqual([[self->psiCash validPurchases] count], 0);
+
+                   XCTAssertEqual([[self->psiCash purchases] count], 2);
+                   [self->psiCash expirePurchases];
+                   XCTAssertEqual([[self->psiCash purchases] count], 0);
 
                    [exp fulfill];
                }];
@@ -209,37 +286,28 @@
                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
                                             withExpectedPrice:@ONE_TRILLION
                                                withCompletion:^(PsiCashStatus status,
-                                                                NSNumber*_Nullable price,
-                                                                NSNumber*_Nullable balance,
-                                                                NSDate*_Nullable longExpiry,
-                                                                NSString*_Nullable longTransactionID,
-                                                                NSString*_Nullable authorization,
+                                                                PsiCashPurchase*_Nullable longPurchase,
                                                                 NSError*_Nullable error)
          {
              XCTAssertNil(error);
              XCTAssertEqual(status, PsiCashStatus_Success);
+             XCTAssertNotNil(longPurchase);
 
              [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                                  withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                                  withExpectedPrice:@ONE_TRILLION
                                                     withCompletion:^(PsiCashStatus status,
-                                                                     NSNumber*_Nullable price,
-                                                                     NSNumber*_Nullable balance,
-                                                                     NSDate*_Nullable shortExpiry,
-                                                                     NSString*_Nullable shortTransactionID,
-                                                                     NSString*_Nullable authorization,
+                                                                     PsiCashPurchase*_Nullable shortPurchase,
                                                                      NSError*_Nullable error)
               {
                   XCTAssertNil(error);
                   XCTAssertEqual(status, PsiCashStatus_Success);
+                  XCTAssertNotNil(shortPurchase);
 
-                  PsiCashPurchase *p;
-                  NSDate *e;
-                  XCTAssertTrue([self->psiCash nextExpiringPurchase:&p expiry:&e]);
+                  PsiCashPurchase *p = [self->psiCash nextExpiringPurchase];
                   XCTAssertNotNil(p);
-                  XCTAssertNotNil(e);
-                  XCTAssert([p.ID isEqualToString:shortTransactionID]);
-                  XCTAssert([e isEqualToDate:shortExpiry]);
+                  XCTAssert([p.ID isEqualToString:shortPurchase.ID]);
+                  XCTAssert([p.localTimeExpiry isEqualToDate:shortPurchase.localTimeExpiry]);
 
                   [exp fulfill];
               }];
@@ -267,39 +335,36 @@
                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                             withExpectedPrice:@ONE_TRILLION
                                                withCompletion:^(PsiCashStatus status,
-                                                                NSNumber*_Nullable price,
-                                                                NSNumber*_Nullable balance,
-                                                                NSDate*_Nullable shortExpiry,
-                                                                NSString*_Nullable shortTransactionID,
-                                                                NSString*_Nullable authorization,
+                                                                PsiCashPurchase*_Nullable shortPurchase,
                                                                 NSError*_Nullable error)
          {
              XCTAssertNil(error);
              XCTAssertEqual(status, PsiCashStatus_Success);
 
+             PsiCashPurchase *firstNextExpiringPurchase = [self->psiCash nextExpiringPurchase];
+             XCTAssertNotNil(firstNextExpiringPurchase);
+             XCTAssert([firstNextExpiringPurchase.ID isEqualToString:shortPurchase.ID]);
+             XCTAssert([firstNextExpiringPurchase.localTimeExpiry isEqualToDate:shortPurchase.localTimeExpiry]);
+
+
              [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                                  withDistinguisher:@TEST_ONE_TRILLION_ONE_SECOND_DISTINGUISHER
                                                  withExpectedPrice:@ONE_TRILLION
                                                     withCompletion:^(PsiCashStatus status,
-                                                                     NSNumber*_Nullable price,
-                                                                     NSNumber*_Nullable balance,
-                                                                     NSDate*_Nullable longExpiry,
-                                                                     NSString*_Nullable longTransactionID,
-                                                                     NSString*_Nullable authorization,
+                                                                     PsiCashPurchase*_Nullable longPurchase,
                                                                      NSError*_Nullable error)
               {
                   XCTAssertNil(error);
                   XCTAssertEqual(status, PsiCashStatus_Success);
 
-                  PsiCashPurchase *p;
-                  NSDate *e;
-                  XCTAssertTrue([self->psiCash nextExpiringPurchase:&p expiry:&e]);
-                  XCTAssertNotNil(p);
-                  XCTAssertNotNil(e);
-                  XCTAssert([p.ID isEqualToString:shortTransactionID]);
-                  // We can't compare shortExpiry to e because the serverTimeDiff changed with the last request.
-                  //XCTAssert([e isEqualToDate:shortExpiry]);
-                  XCTAssert([e isEqualToDate:[self->psiCash adjustForServerTimeDiff:p.expiry]]);
+                  PsiCashPurchase *secondNextExpiringPurchase = [self->psiCash nextExpiringPurchase];
+                  XCTAssertNotNil(secondNextExpiringPurchase);
+                  XCTAssert([secondNextExpiringPurchase.ID isEqualToString:shortPurchase.ID]);
+                  // We can't compare shortLocalTimeExpiry to anything at this
+                  // point because the serverTimeDiff changed with the last request.
+
+                  // Let the longer purchase expire.
+                  [NSThread sleepForTimeInterval:1.1];
 
                   [exp fulfill];
               }];
@@ -323,47 +388,51 @@
         // Clear out any pre-existing expired purchases.
         [self->psiCash expirePurchases];
 
+         XCTAssertEqual(self->psiCash.purchases.count, 0);
+
         [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                             withExpectedPrice:@ONE_TRILLION
                                                withCompletion:^(PsiCashStatus status,
-                                                                NSNumber*_Nullable price,
-                                                                NSNumber*_Nullable balance,
-                                                                NSDate*_Nullable expiry,
-                                                                NSString*_Nullable transactionID1,
-                                                                NSString*_Nullable authorization,
+                                                                PsiCashPurchase*_Nullable purchase1,
                                                                 NSError*_Nullable error)
          {
              XCTAssertNil(error);
              XCTAssertEqual(status, PsiCashStatus_Success);
+             XCTAssertNotNil(purchase1);
 
              [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                                  withDistinguisher:@TEST_ONE_TRILLION_TEN_SECOND_DISTINGUISHER
                                                  withExpectedPrice:@ONE_TRILLION
                                                     withCompletion:^(PsiCashStatus status,
-                                                                     NSNumber*_Nullable price,
-                                                                     NSNumber*_Nullable balance,
-                                                                     NSDate*_Nullable expiry,
-                                                                     NSString*_Nullable transactionID2,
-                                                                     NSString*_Nullable authorization,
+                                                                     PsiCashPurchase*_Nullable purchase2,
                                                                      NSError*_Nullable error)
               {
                   XCTAssertNil(error);
                   XCTAssertEqual(status, PsiCashStatus_Success);
+                  XCTAssertNotNil(purchase2);
+
+                  // NOTE: These tests may fail if the client-server time adjustment
+                  // is too inaccurate. We're going to sleep for 5 secs, which
+                  // should ensure that the 1 microsecond purchase is expired
+                  // but the 10 second purchase is not.
+                  [NSThread sleepForTimeInterval:5.0];
 
                   NSArray *expiredPurchases = [self->psiCash expirePurchases];
-                  XCTAssert([expiredPurchases count] == 1);
+                  XCTAssertNotNil(expiredPurchases);
+                  XCTAssertEqual(expiredPurchases.count, 1);
                   for (PsiCashPurchase *p in expiredPurchases) {
-                      XCTAssert([p.ID isEqualToString:transactionID1]);
+                      XCTAssert([p.ID isEqualToString:purchase1.ID]);
                   }
 
                   // Let the longer purchase expire
                   [NSThread sleepForTimeInterval:11.0];
 
                   expiredPurchases = [self->psiCash expirePurchases];
-                  XCTAssert([expiredPurchases count] == 1);
+                  XCTAssertNotNil(expiredPurchases);
+                  XCTAssertEqual(expiredPurchases.count, 1);
                   for (PsiCashPurchase *p in expiredPurchases) {
-                      XCTAssert([p.ID isEqualToString:transactionID2]);
+                      XCTAssert([p.ID isEqualToString:purchase2.ID]);
                   }
 
                   [exp fulfill];
@@ -390,21 +459,18 @@
                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                             withExpectedPrice:@ONE_TRILLION
                                                withCompletion:^(PsiCashStatus status,
-                                                                NSNumber*_Nullable price,
-                                                                NSNumber*_Nullable balance,
-                                                                NSDate*_Nullable expiry,
-                                                                NSString*_Nullable transactionID,
-                                                                NSString*_Nullable authorization,
+                                                                PsiCashPurchase*_Nullable purchase,
                                                                 NSError*_Nullable error)
          {
              XCTAssertNil(error);
              XCTAssertEqual(status, PsiCashStatus_Success);
+             XCTAssertNotNil(purchase);
 
              XCTAssert([self->psiCash.purchases count] == 1 &&
-                       [self->psiCash.purchases[0].ID isEqualToString:transactionID]);
+                       [self->psiCash.purchases[0].ID isEqualToString:purchase.ID]);
 
              // Remove this transaction
-             [self->psiCash removePurchases:@[transactionID]];
+             [self->psiCash removePurchases:@[purchase.ID]];
              XCTAssert([self->psiCash.purchases count] == 0);
 
              // Now add and remove two transactions
@@ -412,37 +478,29 @@
                                                  withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                                  withExpectedPrice:@ONE_TRILLION
                                                     withCompletion:^(PsiCashStatus status,
-                                                                     NSNumber*_Nullable price,
-                                                                     NSNumber*_Nullable balance,
-                                                                     NSDate*_Nullable expiry,
-                                                                     NSString*_Nullable transactionID1,
-                                                                     NSString*_Nullable authorization,
+                                                                     PsiCashPurchase*_Nullable purchase1,
                                                                      NSError*_Nullable error)
               {
                   XCTAssertNil(error);
                   XCTAssertEqual(status, PsiCashStatus_Success);
 
                   XCTAssertEqual([self->psiCash.purchases count], 1);
-                  XCTAssertEqualObjects(self->psiCash.purchases[0].ID, transactionID1);
+                  XCTAssertEqualObjects(self->psiCash.purchases[0].ID, purchase1.ID);
 
                   [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                                       withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                                       withExpectedPrice:@ONE_TRILLION
                                                          withCompletion:^(PsiCashStatus status,
-                                                                          NSNumber*_Nullable price,
-                                                                          NSNumber*_Nullable balance,
-                                                                          NSDate*_Nullable expiry,
-                                                                          NSString*_Nullable transactionID2,
-                                                                          NSString*_Nullable authorization,
+                                                                          PsiCashPurchase*_Nullable purchase2,
                                                                           NSError*_Nullable error)
                    {
                        XCTAssertEqual([self->psiCash.purchases count], 2);
                        XCTAssertNotEqualObjects(self->psiCash.purchases[0].ID, self->psiCash.purchases[1].ID);
-                       XCTAssert([self->psiCash.purchases[0].ID isEqualToString:transactionID1] || [self->psiCash.purchases[1].ID isEqualToString:transactionID1]);
-                       XCTAssert([self->psiCash.purchases[0].ID isEqualToString:transactionID2] || [self->psiCash.purchases[1].ID isEqualToString:transactionID2]);
+                       XCTAssert([self->psiCash.purchases[0].ID isEqualToString:purchase1.ID] || [self->psiCash.purchases[1].ID isEqualToString:purchase1.ID]);
+                       XCTAssert([self->psiCash.purchases[0].ID isEqualToString:purchase2.ID] || [self->psiCash.purchases[1].ID isEqualToString:purchase2.ID]);
 
                        // Remove the transactions
-                       [self->psiCash removePurchases:@[transactionID1, transactionID2]];
+                       [self->psiCash removePurchases:@[purchase1.ID, purchase2.ID]];
                        XCTAssertEqual([self->psiCash.purchases count], 0);
 
                        [exp fulfill];
@@ -451,6 +509,115 @@
          }];
     }];
 
+
+    [self waitForExpectationsWithTimeout:100 handler:nil];
+}
+
+- (void)testPurchaseTimeAdjustment {
+    XCTestExpectation *exp = [self expectationWithDescription:@"Success: removePurchases"];
+
+    // Start by ensuring we have sufficient balance
+    [TestHelpers makeRewardRequests:self->psiCash
+                             amount:3
+                         completion:^(BOOL success)
+     {
+         XCTAssertTrue(success);
+
+         [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                             withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                             withExpectedPrice:@ONE_TRILLION
+                                                withCompletion:^(PsiCashStatus status,
+                                                                 PsiCashPurchase*_Nullable purchase,
+                                                                 NSError*_Nullable error)
+          {
+              XCTAssertNil(error);
+              XCTAssertEqual(status, PsiCashStatus_Success);
+              XCTAssertNotNil(purchase);
+
+              [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
+                                                  withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
+                                                  withExpectedPrice:@ONE_TRILLION
+                                                     withCompletion:^(PsiCashStatus status,
+                                                                      PsiCashPurchase*_Nullable purchase,
+                                                                      NSError*_Nullable error)
+               {
+                   XCTAssertNil(error);
+                   XCTAssertEqual(status, PsiCashStatus_Success);
+                   XCTAssertNotNil(purchase);
+
+                   // Even though `purchase` was initialized before we start
+                   // tweaking serverTimeDiff, it is still probably a pointer
+                   // to an object that will get modified by our accessors.
+                   // So we shouldn't expect its localTimeExpiry to remain
+                   // different than the ones below. (And so we won't test it
+                   // directly.)
+
+                   void (^test)(NSTimeInterval, PsiCashPurchase*) = ^(NSTimeInterval serverTimeDiff, PsiCashPurchase *purchase) {
+                       XCTAssertNotNil(purchase.localTimeExpiry);
+
+                       NSTimeInterval timeInterval = [purchase.serverTimeExpiry timeIntervalSinceDate:purchase.localTimeExpiry];
+                       XCTAssertEqual(timeInterval, serverTimeDiff);
+
+                   };
+
+                   //
+                   // purchases accessor
+                   //
+
+                   // Force the server time diff to a large value.
+                   NSTimeInterval serverTimeDiff = 10000.0;
+                   [TestHelpers setServerTimeDiff:self->psiCash to:serverTimeDiff];
+
+                   NSArray<PsiCashPurchase*> *purchases = [self->psiCash purchases];
+                   XCTAssertEqual(purchases.count, 2);
+
+                   for (PsiCashPurchase *purchase in purchases) {
+                       test(serverTimeDiff, purchase);
+                   }
+
+                   //
+                   // validPurchases accessor
+                   //
+
+                   // Make negative so that our purchases are _not_ already expired.
+                   serverTimeDiff = -10000.0;
+                   [TestHelpers setServerTimeDiff:self->psiCash to:serverTimeDiff];
+
+                   purchases = [self->psiCash validPurchases];
+                   XCTAssertGreaterThanOrEqual(purchases.count, 1);
+
+                   for (PsiCashPurchase *purchase in purchases) {
+                       test(serverTimeDiff, purchase);
+                   }
+
+                   //
+                   // nextExpiringPurchase accessor
+                   //
+
+                   PsiCashPurchase *nextExpiring = [self->psiCash nextExpiringPurchase];
+                   XCTAssertNotNil(nextExpiring);
+
+                   test(serverTimeDiff, nextExpiring);
+
+                   //
+                   // expirePurchases accessor
+                   //
+
+                   // Make positive so that our purchases _are_ already expired.
+                   serverTimeDiff = 10000.0;
+                   [TestHelpers setServerTimeDiff:self->psiCash to:serverTimeDiff];
+
+                   purchases = [self->psiCash expirePurchases];
+                   XCTAssertGreaterThanOrEqual(purchases.count, 1);
+
+                   for (PsiCashPurchase *purchase in purchases) {
+                       test(serverTimeDiff, purchase);
+                   }
+
+                   [exp fulfill];
+               }];
+          }];
+     }];
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
 }
@@ -547,10 +714,6 @@
          XCTAssertTrue(success);
 
         [self->psiCash refreshState:@[@"speed-boost"] withCompletion:^(PsiCashStatus status,
-                                                                       NSArray * _Nullable validTokenTypes,
-                                                                       BOOL isAccount,
-                                                                       NSNumber * _Nullable balance,
-                                                                       NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
                                                                        NSError * _Nullable error)
          {
              XCTAssertNil(error);
@@ -561,11 +724,7 @@
                                                  withDistinguisher:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER
                                                  withExpectedPrice:@ONE_TRILLION
                                                     withCompletion:^(PsiCashStatus status,
-                                                                     NSNumber*_Nullable price,
-                                                                     NSNumber*_Nullable balance,
-                                                                     NSDate*_Nullable expiry,
-                                                                     NSString*_Nullable transactionID1,
-                                                                     NSString*_Nullable authorization,
+                                                                     PsiCashPurchase*_Nullable purchase,
                                                                      NSError*_Nullable error)
               {
                   XCTAssertNil(error);

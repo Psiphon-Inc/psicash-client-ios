@@ -47,6 +47,9 @@ extern NSString * const EARNER_TOKEN_TYPE;
 //! Set the user as an account. (Note that this messes up state.)
 + (void)setIsAccount:(PsiCash*_Nonnull)psiCash;
 
+//! Set the serverTimeDiff value.
++ (void)setServerTimeDiff:(PsiCash*_Nonnull)psiCash to:(NSTimeInterval)serverTimeDiff;
+
 //! Get the current auth tokens.
 + (NSDictionary*)getAuthTokens:(PsiCash*_Nonnull)psiCash;
 
