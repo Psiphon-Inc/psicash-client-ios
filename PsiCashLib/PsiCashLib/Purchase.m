@@ -30,16 +30,26 @@
 
 @implementation PsiCashPurchase
 
+// NOTE: localTimeExpiry is calculated and populated by PsiCash.m. It is not
+// persisted here, and depends on the serverTimeDiff.
+// TODO: It would be nice if localTimeExpiry were calculated every time it was read,
+// rather than only when the array is accessed. We could do something like having
+// UserInfo implement a delegate that provides it, and then set that in every
+// instance of this class. For now that's more trouble than it's worth.
+
+
 - (id)initWithID:(NSString*_Nonnull)ID
 transactionClass:(NSString*_Nonnull)transactionClass
    distinguisher:(NSString*_Nonnull)distinguisher
-          expiry:(NSDate*_Nullable)expiry
+serverTimeExpiry:(NSDate*_Nullable)serverTimeExpiry
+ localTimeExpiry:(NSDate*_Nullable)localTimeExpiry
    authorization:(NSString*_Nullable)authorization
 {
     self.ID = ID;
     self.transactionClass = transactionClass;
     self.distinguisher = distinguisher;
-    self.expiry = expiry;
+    self.serverTimeExpiry = serverTimeExpiry;
+    self.localTimeExpiry = localTimeExpiry;
     self.authorization = authorization;
     return self;
 }
@@ -49,7 +59,7 @@ transactionClass:(NSString*_Nonnull)transactionClass
     return @{@"id": self.ID ? self.ID : NSNull.null,
              @"class": self.transactionClass ? self.transactionClass : NSNull.null,
              @"distinguisher": self.distinguisher ? self.distinguisher : NSNull.null,
-             @"expiry": self.expiry ? [Utils iso8601StringFromDate:self.expiry] : NSNull.null,
+             @"expiry": self.serverTimeExpiry ? [Utils iso8601StringFromDate:self.serverTimeExpiry] : NSNull.null,
              @"authorization": self.authorization ? self.authorization : NSNull.null};
 }
 
@@ -66,7 +76,7 @@ transactionClass:(NSString*_Nonnull)transactionClass
     self.ID = [decoder decodeObjectForKey:@"ID"];
     self.transactionClass = [decoder decodeObjectForKey:@"transactionClass"];
     self.distinguisher = [decoder decodeObjectForKey:@"distinguisher"];
-    self.expiry = [decoder decodeObjectForKey:@"expiry"];
+    self.serverTimeExpiry = [decoder decodeObjectForKey:@"expiry"];
     self.authorization = [decoder decodeObjectForKey:@"authorization"];
 
     return self;
@@ -77,7 +87,7 @@ transactionClass:(NSString*_Nonnull)transactionClass
     [encoder encodeObject:self.ID forKey:@"ID"];
     [encoder encodeObject:self.transactionClass forKey:@"transactionClass"];
     [encoder encodeObject:self.distinguisher forKey:@"distinguisher"];
-    [encoder encodeObject:self.expiry forKey:@"expiry"];
+    [encoder encodeObject:self.serverTimeExpiry forKey:@"expiry"];
     [encoder encodeObject:self.authorization forKey:@"authorization"];
 }
 

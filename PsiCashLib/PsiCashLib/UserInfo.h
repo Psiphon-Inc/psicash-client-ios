@@ -53,8 +53,6 @@
 
 //! Add the given purchase to the stored purchases.
 - (void)addPurchase:(PsiCashPurchase*_Nonnull)purchase;
-//! Remove the given purchases from the stored purchases.
-- (void)removePurchases:(NSArray<PsiCashPurchase*>*_Nonnull)purchases;
 
 @end
 
