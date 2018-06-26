@@ -56,7 +56,7 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 # pragma mark - Stored info accessors
 
 /*! Returns the stored valid token types. Like ["spender", "indicator"].
- May be nil or empty. */
+    May be nil or empty. */
 - (NSArray<NSString*>*_Nullable)validTokenTypes;
 /*! Returns the stored info about whether the user is a tracker or an account. */
 - (BOOL)isAccount;
