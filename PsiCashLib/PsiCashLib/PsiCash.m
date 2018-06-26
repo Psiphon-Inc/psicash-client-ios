@@ -109,66 +109,33 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     return self->userInfo.purchasePrices;
 }
 
-- (NSArray<PsiCashPurchase*>*_Nullable)purchases
+/*! Helper for other purchases accessors. Modifies the contents of the supplied array. */
+- (void)populatePurchasesLocalTimeExpiry:(NSArray<PsiCashPurchase*>*_Nullable)purchases
 {
-    return self->userInfo.purchases;
-}
-
-- (NSDate*_Nonnull)adjustForServerTimeDiff:(NSDate*_Nonnull)date
-{
-    // Use the negative of serverTimeDiff because if the server time is ahead
-    // of the local time, we need to shift our perceived expiry time back.
-    return [NSDate dateWithTimeInterval:-self->userInfo.serverTimeDiff
-                              sinceDate:date];
-}
-
-- (BOOL)nextExpiringPurchase:(PsiCashPurchase*_Nonnull*_Nullable)purchase
-                      expiry:(NSDate*_Nonnull*_Nullable)expiry
-{
-    *purchase = nil;
-    *expiry = nil;
-
-    PsiCashPurchase *next;
-    for (PsiCashPurchase *purchase in self->userInfo.purchases) {
-        if (purchase.expiry == nil) {
-            continue;
-        }
-
-        if (next == nil) {
-            next = purchase;
-            continue;
-        }
-
-        if ([purchase.expiry compare:next.expiry] == NSOrderedAscending) {
-            next = purchase;
-        }
+    if (!purchases) {
+        return;
     }
 
-    if (next == nil) {
-        return NO;
+    // Populate/update the clientTimeExpiry field.
+    for (PsiCashPurchase *purchase in purchases) {
+        purchase.localTimeExpiry = [self adjustServerTimeToLocal:purchase.serverTimeExpiry];
     }
-
-    NSDate *nextExpiry = [self adjustForServerTimeDiff:next.expiry];
-
-    *purchase = next;
-    *expiry = nextExpiry;
-
-    return YES;
 }
 
-- (NSArray<PsiCashPurchase*>*_Nullable)expirePurchases
+/*! Helper for removing and returning expired purchases. Calls populatePurchasesLocalTimeExpiry. */
+- (NSArray<PsiCashPurchase*>*_Nullable)findExpiredPurchases:(NSArray<PsiCashPurchase*>*_Nullable)purchases
 {
-    NSArray<PsiCashPurchase*> *purchases = self->userInfo.purchases;
-
     if (!purchases) {
         return nil;
     }
+
+    [self populatePurchasesLocalTimeExpiry:purchases];
 
     NSMutableArray<PsiCashPurchase*> *expiredPurchases = [[NSMutableArray alloc] init];
     NSDate *now = [NSDate date];
 
     for (PsiCashPurchase *purchase in purchases) {
-        if ([purchase.expiry compare:now] == NSOrderedAscending) {
+        if ([purchase.localTimeExpiry compare:now] == NSOrderedAscending) {
             [expiredPurchases addObject:purchase];
         }
     }
@@ -177,32 +144,119 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
         return nil;
     }
 
-    [self->userInfo removePurchases:expiredPurchases];
+    return expiredPurchases;
+}
+
+- (NSArray<PsiCashPurchase*>*_Nullable)purchases
+{
+    NSArray<PsiCashPurchase*>* purchases = self->userInfo.purchases;
+    [self populatePurchasesLocalTimeExpiry:purchases];
+    return purchases;
+}
+
+- (NSArray<PsiCashPurchase*>*_Nullable)validPurchases
+{
+    NSArray<PsiCashPurchase*> *purchases = [self purchases];
+    NSArray<PsiCashPurchase*> *expiredPurchases = [self findExpiredPurchases:purchases];
+    NSArray<PsiCashPurchase*> *validPurchases = [self removePurchases:expiredPurchases from:purchases];
+    return validPurchases;
+}
+
+- (PsiCashPurchase*_Nullable)nextExpiringPurchase
+{
+    // This populates localTimeExpiry
+    NSArray<PsiCashPurchase*> *purchases = [self purchases];
+
+    PsiCashPurchase *next;
+    for (PsiCashPurchase *purchase in purchases) {
+        if (purchase.serverTimeExpiry == nil) {
+            continue;
+        }
+
+        if (next == nil) {
+            next = purchase;
+            continue;
+        }
+
+        if ([purchase.serverTimeExpiry compare:next.serverTimeExpiry] == NSOrderedAscending) {
+            next = purchase;
+        }
+    }
+
+    return next; // may be nil
+}
+
+- (NSArray<PsiCashPurchase*>*_Nullable)expirePurchases
+{
+    // This populates localTimeExpiry
+    NSArray<PsiCashPurchase*> *purchases = [self purchases];
+
+    if (!purchases) {
+        return nil;
+    }
+
+    NSArray<PsiCashPurchase*> *expiredPurchases = [self findExpiredPurchases:purchases];
+    NSArray<PsiCashPurchase*> *prunedPurchases = [self removePurchases:expiredPurchases
+                                                                  from:purchases];
+
+    [self->userInfo setPurchases:prunedPurchases];
 
     return expiredPurchases;
 }
 
 - (void)removePurchases:(NSArray<NSString*>*_Nonnull)ids
 {
-    if ([ids count] == 0) {
-        return;
-    }
+    NSArray<PsiCashPurchase*> *purchases = [self purchases];
+    NSArray<PsiCashPurchase*>* pruned = [self removePurchaseIDs:ids
+                                                           from:purchases];
+    [self->userInfo setPurchases:pruned];
+}
 
-    NSArray<PsiCashPurchase*> *purchases = self->userInfo.purchases;
+/*! Helper */
+- (NSArray<PsiCashPurchase*>*_Nullable)removePurchaseIDs:(NSArray<NSString*>*_Nonnull)ids
+                                                    from:(NSArray<PsiCashPurchase*>*_Nullable)purchases
+{
+    if ([ids count] == 0) {
+        return purchases;
+    }
 
     if ([purchases count] == 0) {
-        return;
+        return nil;
     }
 
-    NSMutableArray *purchasesToRemove = [[NSMutableArray alloc] init];
+    NSMutableIndexSet *indexesToRemove = [[NSMutableIndexSet alloc] init];
 
-    for (PsiCashPurchase *purchase in purchases) {
-        if ([ids containsObject:purchase.ID]) {
-            [purchasesToRemove addObject:purchase];
+    for (NSString *purchaseID in ids) {
+        for (int i = 0; i < [purchases count]; i++) {
+            PsiCashPurchase *purchase = purchases[i];
+            if ([purchase.ID isEqualToString:purchaseID]) {
+                [indexesToRemove addIndex:i];
+                break;
+            }
         }
     }
 
-    [self->userInfo removePurchases:purchasesToRemove];
+    NSMutableArray<PsiCashPurchase*> *prunedPurchases = [purchases mutableCopy];
+    [prunedPurchases removeObjectsAtIndexes:indexesToRemove];
+
+    return prunedPurchases;
+}
+
+/*! Helper */
+- (NSArray<PsiCashPurchase*>*_Nullable)removePurchases:(NSArray<PsiCashPurchase*>*_Nonnull)purchasesToRemove
+                                                  from:(NSArray<PsiCashPurchase*>*_Nullable)purchases
+{
+    if (!purchases) {
+        return nil;
+    }
+
+    NSMutableArray<NSString*> *idsToRemove = [NSMutableArray arrayWithCapacity:purchasesToRemove.count];
+
+    for (PsiCashPurchase *purchaseToRemove in purchasesToRemove) {
+        [idsToRemove addObject:purchaseToRemove.ID];
+    }
+
+    return [self removePurchaseIDs:idsToRemove from:purchases];
 }
 
 - (NSError*_Nullable)modifyLandingPage:(NSString*_Nonnull)url
@@ -400,10 +454,6 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
 
 - (void)refreshState:(NSArray<NSString*>*_Nonnull)purchaseClasses
       withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                       NSArray<NSString*>*_Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber*_Nullable balance,
-                                       NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
                                        NSError*_Nullable error))completionHandler
 {
     // Call the helper, indicating that it can do one level of recursion.
@@ -417,10 +467,6 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
 - (void)refreshStateHelper:(NSArray<NSString*>*_Nonnull)purchaseClasses
             allowRecursion:(BOOL)allowRecursion
             withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                             NSArray<NSString*>*_Nullable validTokenTypes,
-                                             BOOL isAccount,
-                                             NSNumber*_Nullable balance,
-                                             NSArray<PsiCashPurchasePrice*>*_Nullable purchasePrices,
                                              NSError*_Nullable error))completionHandler
 {
     /*
@@ -443,14 +489,14 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
         if (self->userInfo.isAccount) {
             // This is/was a logged-in account. We can't just get a new tracker.
             // The app will have to force a login for the user to do anything.
-            dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Success, @[], YES, nil, nil, nil); });
+            dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Success, nil); });
             return;
         }
 
         if (!allowRecursion) {
             // We have already recursed and can't do it again. This is an error condition.
             NSError *error = [NSError errorWithMessage:@"failed to obtain valid tracker tokens (a)" fromFunction:__FUNCTION__];
-            dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
+            dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, error); });
             return;
         }
 
@@ -461,12 +507,12 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
          {
              if (error) {
                  error = [NSError errorWrapping:error withMessage:@"newTracker request error" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, error); });
                  return;
              }
 
              if (status != PsiCashStatus_Success) {
-                 dispatch_async(self->completionQueue, ^{ completionHandler(status, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(status, error); });
                  return;
              }
 
@@ -501,14 +547,14 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
      {
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, error); });
              return;
          }
 
          if (response.statusCode == kHTTPStatusOK) {
              if (!data || data.length == 0) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, error); });
                  return;
              }
 
@@ -524,14 +570,14 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
                                       withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, error); });
                  return;
              }
 
              if (balance) {
                  self->userInfo.balance = balance;
              }
-             if (purchasePrices) {
+             if (purchasePrices && purchasePrices.count > 0) {
                  self->userInfo.purchasePrices = purchasePrices;
              }
 
@@ -552,7 +598,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
              // something is very wrong.
              if (self->userInfo.isAccount && !isAccount) {
                  error = [NSError errorWithMessage:@"invalid is-account state" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, error); });
                  return;
              }
 
@@ -561,10 +607,6 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
              if (self->userInfo.isAccount) {
                  // For accounts there's nothing else we can do, regardless of the state of token validity.
                  dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Success,
-                                                                            [onlyValidTokens allKeys],
-                                                                            self->userInfo.isAccount,
-                                                                            balance,
-                                                                            purchasePrices,
                                                                             nil); });
                  return;
              }
@@ -572,10 +614,6 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
              if (onlyValidTokens.count > 0) {
                  // We have a good tracker state.
                  dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Success,
-                                                                            [onlyValidTokens allKeys],
-                                                                            self->userInfo.isAccount,
-                                                                            balance,
-                                                                            purchasePrices,
                                                                             nil); });
                  return;
              }
@@ -585,7 +623,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
              if (!allowRecursion) {
                  // No further recursion is allowed, so there's nothing more we can do.
                  NSError *error = [NSError errorWithMessage:@"failed to obtain valid tracker tokens (b)" fromFunction:__FUNCTION__];
-                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
+                 dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, error); });
                  return;
              }
 
@@ -602,11 +640,11 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
              // This can only happen if the tokens we sent didn't all belong to
              // same user. This really should never happen.
              [self->userInfo clear];
-             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_InvalidTokens, nil, NO, nil, nil, nil); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_InvalidTokens, nil); });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
-             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_ServerError, nil, NO, nil, nil, nil); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_ServerError, nil); });
              return;
          }
          else {
@@ -614,7 +652,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
              // Shouldn't happen.
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
-             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, nil, NO, nil, nil, error); });
+             dispatch_async(self->completionQueue, ^{ completionHandler(PsiCashStatus_Invalid, error); });
              return;
          }
      }];
@@ -725,11 +763,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
                              withDistinguisher:(NSString*_Nonnull)transactionDistinguisher
                              withExpectedPrice:(NSNumber*_Nonnull)expectedPrice
                                 withCompletion:(void (^_Nonnull)(PsiCashStatus status,
-                                                                 NSNumber*_Nullable price,
-                                                                 NSNumber*_Nullable balance,
-                                                                 NSDate*_Nullable expiry,
-                                                                 NSString*_Nullable transactionID,
-                                                                 NSString*_Nullable authorization,
+                                                                 PsiCashPurchase*_Nullable purchase,
                                                                  NSError*_Nullable error))completionHandler
 {
     NSMutableArray *queryItems = [[NSMutableArray alloc] init];
@@ -754,13 +788,12 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
          if (error) {
              error = [NSError errorWrapping:error withMessage:@"request error" fromFunction:__FUNCTION__];
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_Invalid, nil, nil, nil, nil, nil, error);
+                 completionHandler(PsiCashStatus_Invalid, nil, error);
              });
              return;
          }
 
-         NSNumber *price, *balance;
-         NSDate *expiry, *adjustedExpiry;
+         NSDate *serverTimeExpiry;
          NSString *transactionID, *authorization;
 
          if (response.statusCode == kHTTPStatusOK ||
@@ -770,83 +803,80 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
              if (!data || data.length == 0) {
                  error = [NSError errorWithMessage:@"request returned no data" fromFunction:__FUNCTION__];
                  dispatch_async(self->completionQueue, ^{
-                     completionHandler(PsiCashStatus_Invalid, nil, nil, nil, nil, nil, error);
+                     completionHandler(PsiCashStatus_Invalid, nil, error);
                  });
                  return;
              }
 
-             NSNumber *transactionAmount;
+             NSNumber *transactionAmount, *balance;
 
              [PsiCash parseNewTransactionResponse:data
                                 transactionAmount:&transactionAmount
                                           balance:&balance
-                                           expiry:&expiry
+                                           expiry:&serverTimeExpiry
                                     transactionID:&transactionID
                                     authorization:&authorization
                                         withError:&error];
              if (error != nil) {
                  error = [NSError errorWrapping:error withMessage:@"" fromFunction:__FUNCTION__];
                  dispatch_async(self->completionQueue, ^{
-                     completionHandler(PsiCashStatus_Invalid, nil, nil, nil, nil, nil, error);
+                     completionHandler(PsiCashStatus_Invalid, nil, error);
                  });
                  return;
              }
 
-             if (expiry) {
-                 adjustedExpiry = [self adjustForServerTimeDiff:expiry];
+             if (balance) {
+                 self->userInfo.balance = balance;
              }
-
-             self->userInfo.balance = balance;
-
-             // Price is positive, transaction amount is negative.
-             price = [NSNumber numberWithLongLong:-transactionAmount.longLongValue];
          }
 
          if (response.statusCode == kHTTPStatusOK) {
-             [self->userInfo addPurchase:[[PsiCashPurchase alloc] initWithID:transactionID
+             PsiCashPurchase *purchase = [[PsiCashPurchase alloc] initWithID:transactionID
                                                             transactionClass:transactionClass
                                                                distinguisher:transactionDistinguisher
-                                                                      expiry:expiry
-                                                               authorization:authorization]];
+                                                            serverTimeExpiry:serverTimeExpiry
+                                                             localTimeExpiry:[self adjustServerTimeToLocal:serverTimeExpiry]
+                                                               authorization:authorization];
+             [self->userInfo addPurchase:purchase];
 
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_Success, price, balance, adjustedExpiry, transactionID, authorization, nil);
+                 completionHandler(PsiCashStatus_Success, purchase, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusTooManyRequests) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_ExistingTransaction, price, balance, adjustedExpiry, nil, nil, nil);
+                 completionHandler(PsiCashStatus_ExistingTransaction, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusPaymentRequired) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_InsufficientBalance, price, balance, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_InsufficientBalance, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusConflict) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_TransactionAmountMismatch, price, balance, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_TransactionAmountMismatch, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusNotFound) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_TransactionTypeNotFound, nil, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_TransactionTypeNotFound, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusUnauthorized) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_InvalidTokens, nil, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_InvalidTokens, nil, nil);
              });
              return;
          }
          else if (response.statusCode == kHTTPStatusInternalServerError) {
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_ServerError, nil, nil, nil, nil, nil, nil);
+                 completionHandler(PsiCashStatus_ServerError, nil, nil);
              });
              return;
          }
@@ -854,7 +884,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
              error = [NSError errorWithMessage:[NSString stringWithFormat:@"request failure: %ld", response.statusCode]
                                   fromFunction:__FUNCTION__];
              dispatch_async(self->completionQueue, ^{
-                 completionHandler(PsiCashStatus_Invalid, nil, nil, nil, nil, nil, error);
+                 completionHandler(PsiCashStatus_Invalid, nil, error);
              });
              return;
          }
@@ -1144,6 +1174,34 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     }
 
     return serverDate.timeIntervalSinceNow;
+}
+
+/*! Modifies a date-time provided by the server to be in equivalent local time
+ (according to the client-server time difference). Returns null if passed null. */
+- (NSDate*_Nullable)adjustServerTimeToLocal:(NSDate*_Nullable)date
+{
+    if (!date) {
+        return nil;
+    }
+
+    // If the serverTimeDiff is +1min, and it's 2:00pm on the server, then it's
+    // 1:59pm locally. So, apply the diff as a negative.
+    return [NSDate dateWithTimeInterval:-self->userInfo.serverTimeDiff
+                              sinceDate:date];
+}
+
+/*! Modifies a client date-time to be in equivalent server time (according to
+ the client-server time difference). Returns null if passed null. */
+- (NSDate*_Nullable)adjustLocalTimeToServer:(NSDate*_Nullable)date
+{
+    if (!date) {
+        return nil;
+    }
+
+    // If the serverTimeDiff is +1min, and it's 2:00pm locally, then it's 2:01pm
+    // on the server. So, apply the diff as a positive.
+    return [NSDate dateWithTimeInterval:+self->userInfo.serverTimeDiff
+                              sinceDate:date];
 }
 
 @end

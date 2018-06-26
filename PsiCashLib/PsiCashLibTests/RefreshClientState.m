@@ -69,30 +69,21 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_Success);
 
-         XCTAssertFalse(isAccount);
-
-         XCTAssertNotNil(validTokenTypes);
-         XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
-
-         XCTAssertNotNil(balance);
-         XCTAssertEqual(balance.integerValue, 0);
-
-         XCTAssertNotNil(purchasePrices);
-         XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
-
-         XCTAssertGreaterThan([[self->psiCash validTokenTypes] count], 0);
          XCTAssertFalse([self->psiCash isAccount]);
-         XCTAssertEqual([self->psiCash balance], balance);
-         XCTAssert([[self->psiCash purchasePrices] isEqualToArray:purchasePrices]);
+
+         XCTAssertNotNil([self->psiCash validTokenTypes]);
+         XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
+
+         XCTAssertNotNil([self->psiCash balance]);
+         XCTAssertEqual([self->psiCash balance].integerValue, 0);
+
+         XCTAssertNotNil([self->psiCash purchasePrices]);
+         XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
 
          [exp fulfill];
      }];
@@ -109,51 +100,48 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_Success);
 
-         XCTAssertFalse(isAccount);
+         XCTAssertFalse([self->psiCash isAccount]);
 
-         XCTAssertNotNil(validTokenTypes);
-         XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
+         XCTAssertNotNil([self->psiCash validTokenTypes]);
+         XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
-         XCTAssertNotNil(balance);
-         XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
+         XCTAssertNotNil([self->psiCash balance]);
+         XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
 
-         XCTAssertNotNil(purchasePrices);
-         XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
+         XCTAssertNotNil([self->psiCash purchasePrices]);
+         XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
+
+         // Store the token values so we can check that they didn't change.
+         NSDictionary<NSString*, NSString*> *firstAuthTokens = [[TestHelpers userInfo:self->psiCash].authTokens copy];
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               XCTAssertNil(error);
               XCTAssertEqual(status, PsiCashStatus_Success);
 
-              XCTAssertFalse(isAccount);
+              XCTAssertFalse([self->psiCash isAccount]);
 
-              XCTAssertNotNil(validTokenTypes);
-              XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
+              XCTAssertNotNil([self->psiCash validTokenTypes]);
+              XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
-              XCTAssertNotNil(balance);
-              XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
+              XCTAssertNotNil([self->psiCash balance]);
+              XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
 
-              XCTAssertNotNil(purchasePrices);
-              XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
+              XCTAssertNotNil([self->psiCash purchasePrices]);
+              XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
 
-              XCTAssertGreaterThan([[self->psiCash validTokenTypes] count], 0);
-              XCTAssertEqual([self->psiCash balance], balance);
-              XCTAssert([[self->psiCash purchasePrices] isEqualToArray:purchasePrices]);
+              // Make sure the tokens didn't change (meaning the Tracker didn't change).
+              NSDictionary<NSString*, NSString*> *secondAuthTokens = [TestHelpers userInfo:self->psiCash].authTokens;
+              for (NSString *tokenType in [TestHelpers userInfo:self->psiCash].authTokens) {
+                  XCTAssert([firstAuthTokens[tokenType] isEqualToString:secondAuthTokens[tokenType]]);
+              }
 
               [exp fulfill];
           }];
@@ -162,32 +150,28 @@
     [self waitForExpectationsWithTimeout:100 handler:nil];
 }
 
-- (void)testNoPurchases {
+- (void)testNoPurchaseClasses {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: no purchase classes"];
 
     NSArray *purchaseClasses =  @[];
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_Success);
 
-         XCTAssertFalse(isAccount);
+         XCTAssertFalse([self->psiCash isAccount]);
 
-         XCTAssertNotNil(validTokenTypes);
-         XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
+         XCTAssertNotNil([self->psiCash validTokenTypes]);
+         XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
-         XCTAssertNotNil(balance);
-         XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
+         XCTAssertNotNil([self->psiCash balance]);
+         XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
 
-         XCTAssertNotNil(purchasePrices);
-         XCTAssertEqual(purchasePrices.count, 0);
+         XCTAssertNotNil([self->psiCash purchasePrices]);
+         XCTAssertEqual([self->psiCash purchasePrices].count, 0);
 
          [exp fulfill];
      }];
@@ -202,27 +186,59 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_Success);
 
-         XCTAssertFalse(isAccount);
+         XCTAssertFalse([self->psiCash isAccount]);
 
-         XCTAssertNotNil(validTokenTypes);
-         XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
+         XCTAssertNotNil([self->psiCash validTokenTypes]);
+         XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
-         XCTAssertNotNil(balance);
-         XCTAssertGreaterThanOrEqual(balance.integerValue, 0);
+         XCTAssertNotNil([self->psiCash balance]);
+         XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
 
-         XCTAssertNotNil(purchasePrices);
-         XCTAssertGreaterThanOrEqual(purchasePrices.count, 3);
+         XCTAssertNotNil([self->psiCash purchasePrices]);
+         XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 3);
 
          [exp fulfill];
+     }];
+
+    [self waitForExpectationsWithTimeout:100 handler:nil];
+}
+
+- (void)testPurchaseClassesThenNoPurchaseClasses {
+    XCTestExpectation *exp = [self expectationWithDescription:@"Success: purchase classes, then no purchase classes (shouldn't clear stored purchase prices)"];
+
+    NSArray *purchaseClasses =  @[@"speed-boost", @TEST_DEBIT_TRANSACTION_CLASS];
+
+    [self->psiCash refreshState:purchaseClasses
+                 withCompletion:^(PsiCashStatus status,
+                                  NSError * _Nullable error)
+     {
+         XCTAssertNil(error);
+         XCTAssertEqual(status, PsiCashStatus_Success);
+
+         XCTAssertNotNil([self->psiCash purchasePrices]);
+         XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 3);
+
+         NSArray *purchaseClasses =  @[];
+
+         [self->psiCash refreshState:purchaseClasses
+                      withCompletion:^(PsiCashStatus status,
+                                       NSError * _Nullable error)
+          {
+              XCTAssertNil(error);
+              XCTAssertEqual(status, PsiCashStatus_Success);
+
+              // The last request didn't get any purchase prices, but the ones
+              // stored from the previous request should still be there.
+              XCTAssertNotNil([self->psiCash purchasePrices]);
+              XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 3);
+
+              [exp fulfill];
+          }];
      }];
 
     [self waitForExpectationsWithTimeout:100 handler:nil];
@@ -235,28 +251,25 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable originalBalance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_Success);
 
-         XCTAssertFalse(isAccount);
+         XCTAssertFalse([self->psiCash isAccount]);
 
-         XCTAssertNotNil(validTokenTypes);
-         XCTAssertGreaterThanOrEqual(validTokenTypes.count, 3);
+         XCTAssertNotNil([self->psiCash validTokenTypes]);
+         XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
+         NSNumber *originalBalance = [self->psiCash balance];
          XCTAssertNotNil(originalBalance);
          XCTAssertGreaterThanOrEqual(originalBalance.integerValue, 0);
 
-         XCTAssertNotNil(purchasePrices);
-         XCTAssertGreaterThanOrEqual(purchasePrices.count, 2);
+         XCTAssertNotNil([self->psiCash purchasePrices]);
+         XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
 
          // Make a reward request so that we can test an increased balance.
-         [TestHelpers makeRewardRequests:psiCash
+         [TestHelpers makeRewardRequests:self->psiCash
                                   amount:1
                               completion:^(BOOL success)
           {
@@ -265,16 +278,13 @@
               // Refresh state again to check balance.
               [self->psiCash refreshState:purchaseClasses
                            withCompletion:^(PsiCashStatus status,
-                                            NSArray * _Nullable validTokenTypes,
-                                            BOOL isAccount,
-                                            NSNumber * _Nullable newBalance,
-                                            NSArray * _Nullable purchasePrices,
                                             NSError * _Nullable error)
                {
                    XCTAssertNil(error);
                    XCTAssertEqual(status, PsiCashStatus_Success);
 
                    // Is the balance bigger?
+                   NSNumber *newBalance = [self->psiCash balance];
                    XCTAssertEqual(newBalance.integerValue,
                                   originalBalance.integerValue + ONE_TRILLION);
 
@@ -296,10 +306,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNotNil(error);
@@ -325,23 +331,19 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_Success);
 
-         XCTAssertTrue(isAccount);
+         XCTAssertTrue([self->psiCash isAccount]);
 
-         XCTAssertNotNil(validTokenTypes);
-         XCTAssertEqual(validTokenTypes.count, 0);
+         XCTAssertNotNil([self->psiCash validTokenTypes]);
+         XCTAssertEqual([self->psiCash validTokenTypes].count, 0);
 
-         XCTAssertNil(balance);
+         XCTAssert([self->psiCash balance] == nil || [[self->psiCash balance] isEqual:@0]);
 
-         XCTAssertNil(purchasePrices);
+         XCTAssertEqual([[self->psiCash purchasePrices] count], 0);
 
          [TestHelpers clearUserInfo:self->psiCash];
 
@@ -366,10 +368,6 @@
     // First get some valid tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -383,23 +381,19 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               XCTAssertNil(error);
               XCTAssertEqual(status, PsiCashStatus_Success);
 
-              XCTAssertTrue(isAccount);
+              XCTAssertTrue([self->psiCash isAccount]);
 
-              XCTAssertNotNil(validTokenTypes);
-              XCTAssertEqual(validTokenTypes.count, 0);
+              XCTAssertNotNil([self->psiCash validTokenTypes]);
+              XCTAssertEqual([self->psiCash validTokenTypes].count, 0);
 
-              XCTAssertNil(balance);
+              XCTAssert([self->psiCash balance] == nil || [[self->psiCash balance] isEqual:@0]);
 
-              XCTAssertNil(purchasePrices);
+              XCTAssertEqual([[self->psiCash purchasePrices] count], 0);
 
               [TestHelpers clearUserInfo:self->psiCash];
 
@@ -425,10 +419,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -443,10 +433,6 @@
          // Make the request again. Should get us new tokens.
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               XCTAssertNil(error);
@@ -480,10 +466,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -501,10 +483,6 @@
          // Make the request again. Should get us new tokens.
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               // Getting valid tokens failed utterly. Should be an error.
@@ -535,10 +513,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNotNil(error);
@@ -565,10 +539,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -583,10 +553,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               // Getting valid tokens failed utterly. Should be an error.
@@ -619,10 +585,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNotNil(error);
@@ -650,10 +612,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -666,10 +624,6 @@
          // Do another request, now that we we have tokens
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               XCTAssertNotNil(error);
@@ -700,10 +654,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          // Getting valid tokens failed utterly. Should be an error.
@@ -732,10 +682,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -750,10 +696,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               XCTAssertNotNil(error);
@@ -784,10 +726,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -815,10 +753,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -833,10 +767,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               XCTAssertNil(error);
@@ -867,10 +797,6 @@
 
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNotNil(error);
@@ -898,10 +824,6 @@
     // Do an initial refresh to get Tracker tokens.
     [self->psiCash refreshState:purchaseClasses
                  withCompletion:^(PsiCashStatus status,
-                                  NSArray * _Nullable validTokenTypes,
-                                  BOOL isAccount,
-                                  NSNumber * _Nullable balance,
-                                  NSArray * _Nullable purchasePrices,
                                   NSError * _Nullable error)
      {
          XCTAssertNil(error);
@@ -916,10 +838,6 @@
 
          [self->psiCash refreshState:purchaseClasses
                       withCompletion:^(PsiCashStatus status,
-                                       NSArray * _Nullable validTokenTypes,
-                                       BOOL isAccount,
-                                       NSNumber * _Nullable balance,
-                                       NSArray * _Nullable purchasePrices,
                                        NSError * _Nullable error)
           {
               // Getting valid tokens failed utterly. Should be an error.
