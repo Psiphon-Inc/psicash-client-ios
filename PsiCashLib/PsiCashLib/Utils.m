@@ -54,4 +54,13 @@
     return [formatter stringFromDate:date];
 }
 
++ (NSString*_Nonnull)encodeURIComponent:(NSString*_Nonnull)string
+{
+    // We're being overly restrictive on allowed characters, but that should be
+    // fine and safe for both query params and fragments/anchors.
+    NSCharacterSet *allowedChars = [NSCharacterSet alphanumericCharacterSet];
+    NSString *encoded = [string stringByAddingPercentEncodingWithAllowedCharacters:allowedChars];
+    return encoded;
+}
+
 @end

@@ -26,6 +26,7 @@
 #import "TestHelpers.h"
 #import "UserInfo.h"
 #import "HTTPStatusCodes.h"
+#import "RequestBuilder.h"
 
 
 
@@ -43,12 +44,12 @@ int const TEST_SERVER_PORT = 51337;
 
 // Expose some private methods to help with testing
 @interface PsiCash (Testing)
-- (NSMutableURLRequest*_Nonnull)createRequestFor:(NSString*_Nonnull)path
-                                      withMethod:(NSString*_Nonnull)method
-                                  withQueryItems:(NSArray*_Nullable)queryItems
-                               includeAuthTokens:(BOOL)includeAuthTokens;
+- (RequestBuilder*_Nonnull)createRequestBuilderFor:(NSString*_Nonnull)path
+                                        withMethod:(NSString*_Nonnull)method
+                                    withQueryItems:(NSArray*_Nullable)queryItems
+                                 includeAuthTokens:(BOOL)includeAuthTokens;
 
-- (void)doRequestWithRetry:(NSURLRequest*_Nonnull)request
+- (void)doRequestWithRetry:(RequestBuilder*_Nonnull)requestBuilder
                   useCache:(BOOL)useCache
          completionHandler:(void (^_Nonnull)(NSData*_Nullable data,
                                              NSHTTPURLResponse*_Nullable response,
@@ -56,7 +57,7 @@ int const TEST_SERVER_PORT = 51337;
 
 - (void)setRequestMutators:(NSArray*)mutators;
 - (void)clearRequestMutators;
-- (void)requestMutator:(NSMutableURLRequest*)request;
+- (void)requestMutator:(RequestBuilder*)requestBuilder;
 
 - (NSDate*_Nullable)adjustServerTimeToLocal:(NSDate*_Nullable)date;
 - (NSDate*_Nullable)adjustLocalTimeToServer:(NSDate*_Nullable)date;
@@ -64,7 +65,7 @@ int const TEST_SERVER_PORT = 51337;
 
 @implementation PsiCash (Testing)
 
-// Global vars, not ivars, which is what they should be. I can't figure out how to make an ivar in an extension. Let's hope these tests aren't concurrent!
+// Global vars, not ivars. I can't figure out how to make an ivar in an extension. Let's hope these tests aren't concurrent!
 NSArray *requestMutators;
 int requestMutatorsIndex;
 
@@ -80,7 +81,7 @@ int requestMutatorsIndex;
     requestMutatorsIndex = 0;
 }
 
-+ (void)requestMutator:(NSMutableURLRequest*)request
++ (void)requestMutator:(RequestBuilder*)requestBuilder
 {
     if (requestMutators != nil) {
         if (requestMutatorsIndex >= requestMutators.count) {
@@ -88,13 +89,16 @@ int requestMutatorsIndex;
             return;
         }
 
+        NSMutableDictionary<NSString*,NSString*> *headers = [[NSMutableDictionary alloc] init];
+
         // Any given mutator item can be nil
         if (requestMutators[requestMutatorsIndex] &&
             requestMutators[requestMutatorsIndex] != [NSNull null]) {
-            [request setValue:requestMutators[requestMutatorsIndex]
-           forHTTPHeaderField:@TEST_HEADER];
+            headers[@TEST_HEADER] = requestMutators[requestMutatorsIndex];
         }
         requestMutatorsIndex += 1;
+
+        [requestBuilder addHeaders:headers];
     }
 }
 @end
@@ -149,10 +153,14 @@ int requestMutatorsIndex;
     [TestHelpers setRequestMutators:psiCash
                            mutators:@[@"CheckEnabled"]];  // sleep for 11 secs
 
-    NSMutableURLRequest *request = [psiCash createRequestFor:@"/refresh-state"
-                                                  withMethod:@"GET"
-                                              withQueryItems:nil
-                                           includeAuthTokens:NO];
+    RequestBuilder *requestBuilder = [psiCash createRequestBuilderFor:@"/refresh-state"
+                                                           withMethod:@"GET"
+                                                       withQueryItems:nil
+                                                    includeAuthTokens:NO];
+    [requestBuilder setAttempt:1];
+    [PsiCash requestMutator:requestBuilder];
+
+    NSMutableURLRequest *request = [requestBuilder request];
 
     NSURLSession *session = [NSURLSession sharedSession];
 
@@ -182,10 +190,14 @@ int requestMutatorsIndex;
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"distinguisher"
                                                       value:@TEST_ONE_TRILLION_ONE_MICROSECOND_DISTINGUISHER]];
 
-    NSMutableURLRequest *request = [psiCash createRequestFor:@"/transaction"
-                                                  withMethod:@"POST"
-                                              withQueryItems:queryItems
-                                           includeAuthTokens:YES];
+    RequestBuilder *requestBuilder = [psiCash createRequestBuilderFor:@"/transaction"
+                                                           withMethod:@"POST"
+                                                       withQueryItems:queryItems
+                                                    includeAuthTokens:YES];
+    [requestBuilder setAttempt:1];
+    [PsiCash requestMutator:requestBuilder];
+
+    NSMutableURLRequest *request = [requestBuilder request];
 
     NSURLSession *session = [NSURLSession sharedSession];
 
