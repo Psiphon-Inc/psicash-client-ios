@@ -28,6 +28,7 @@
 #import "HTTPStatusCodes.h"
 #import "PurchasePrice.h"
 #import "Utils.h"
+#import "RequestBuilder.h"
 
 /* TODO
  - Consider using NSUbiquitousKeyValueStore instead of NSUserDefaults for
@@ -60,7 +61,7 @@ NSTimeInterval const TIMEOUT_SECS = 10.0;
 NSString * const AUTH_HEADER = @"X-PsiCash-Auth";
 NSString * const PSICASH_USER_AGENT = @"Psiphon-PsiCash-iOS";
 NSUInteger const REQUEST_RETRY_LIMIT = 2;
-NSString * const LANDING_PAGE_TOKEN_KEY = @"psicash";
+NSString * const LANDING_PAGE_PARAM_KEY = @"psicash";
 NSString * const EARNER_TOKEN_TYPE = @"earner";
 
 @implementation PsiCash {
@@ -69,6 +70,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     NSNumber *serverPort;
     UserInfo *userInfo;
     dispatch_queue_t completionQueue;
+    NSMutableDictionary<NSString*,id> *requestMetadata;
 }
 
 # pragma mark - Init
@@ -84,7 +86,14 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     // authTokens may still be nil if the value has never been stored.
     self->userInfo = [[UserInfo alloc] init];
 
+    self->requestMetadata = [[NSMutableDictionary alloc] init];
+
     return self;
+}
+
+- (void)setRequestMetadataAtKey:(NSString*_Nonnull)k withValue:(id)v
+{
+    self->requestMetadata[k] = v;
 }
 
 # pragma mark - Stored info accessors
@@ -271,14 +280,37 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
                             fromFunction:__FUNCTION__];
     }
 
+    NSMutableDictionary<NSString*,NSObject*> *psiCashData = [[NSMutableDictionary alloc] init];
+    psiCashData[@"v"] = @2;
+
     // Get the earner token. If we don't have one, we can't modify the URL.
     if (!self->userInfo.authTokens ||
         ![self->userInfo.authTokens[EARNER_TOKEN_TYPE] isKindOfClass:[NSString class]]) {
-        return [NSError errorWithMessage:@"no valid earner token"
-                            fromFunction:__FUNCTION__];
+        psiCashData[@"tokens"] = NSNull.null;
+    }
+    else {
+        psiCashData[@"tokens"] = self->userInfo.authTokens[EARNER_TOKEN_TYPE];
     }
 
-    NSString *earnerToken = self->userInfo.authTokens[EARNER_TOKEN_TYPE];
+    // Get the metadata (sponsor ID, etc.)
+    psiCashData[@"metadata"] = self->requestMetadata;
+
+    NSJSONWritingOptions jsonOpts = 0;
+    if (@available(iOS 11.0, *)) {
+        // We're going to sort the keys if possible to make testing easier
+        // (expected results can be sane).
+        jsonOpts = NSJSONWritingSortedKeys;
+    }
+
+    NSError *error;
+    NSData *dataJSON = [NSJSONSerialization dataWithJSONObject:psiCashData
+                                                       options:jsonOpts
+                                                         error:&error];
+    NSString *dataString = @"{}";
+    if (!error) {
+        dataString = [[NSString alloc] initWithData:dataJSON
+                                           encoding:NSUTF8StringEncoding];
+    }
 
     // Our preference is to put the token into the URL's fragment/hash/anchor,
     // because we'd prefer the token not to be sent to the server.
@@ -286,19 +318,27 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     // (Because altering the fragment is more likely to have negative consequences
     // for the page than adding a query parameter that will be ignored.)
 
-    if (!urlComponents.fragment) {
-        urlComponents.fragment = [NSString stringWithFormat:@"%@=%@",
-                                  LANDING_PAGE_TOKEN_KEY,
-                                  earnerToken];
+    if (urlComponents.fragment) {
+        // The URL already has a fragment; use a query param.
+        NSMutableArray<NSURLQueryItem*> *queryItems = [NSMutableArray arrayWithArray:urlComponents.queryItems];
+        [queryItems addObject:[NSURLQueryItem queryItemWithName:LANDING_PAGE_PARAM_KEY
+                                                          value:dataString]];
+        urlComponents.queryItems = queryItems;
+        *modifiedURL = [NSString stringWithString:urlComponents.string];
     }
     else {
-        NSMutableArray<NSURLQueryItem*> *queryItems = [NSMutableArray arrayWithArray:urlComponents.queryItems];
-        [queryItems addObject:[NSURLQueryItem queryItemWithName:LANDING_PAGE_TOKEN_KEY
-                                                          value:earnerToken]];
-        urlComponents.queryItems = queryItems;
-    }
+        // We can't use urlComponents.fragment, because we'll end up
+        // double-encoding our payload.
 
-    *modifiedURL = [NSString stringWithString:urlComponents.string];
+        // Make the URL without the fragment.
+        *modifiedURL = [NSString stringWithString:urlComponents.string];
+
+        // Append the fragment.
+        NSString *fragment = [NSString stringWithFormat:@"#%@=%@",
+                              LANDING_PAGE_PARAM_KEY,
+                              [Utils encodeURIComponent:dataString]];
+        *modifiedURL = [*modifiedURL stringByAppendingString:fragment];
+    }
 
     return nil;
 }
@@ -339,12 +379,12 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
                              NSDictionary<NSString*, NSString*>*_Nullable authTokens,
                              NSError*_Nullable error))completionHandler
 {
-    NSMutableURLRequest *request = [self createRequestFor:@"/tracker"
-                                               withMethod:@"POST"
-                                           withQueryItems:nil
-                                        includeAuthTokens:NO];
+    RequestBuilder *requestBuilder = [self createRequestBuilderFor:@"/tracker"
+                                                        withMethod:@"POST"
+                                                    withQueryItems:nil
+                                                 includeAuthTokens:NO];
 
-    [self doRequestWithRetry:request
+    [self doRequestWithRetry:requestBuilder
                     useCache:NO
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
      {
@@ -536,12 +576,12 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
         [queryItems addObject:qi];
     }
 
-    NSMutableURLRequest *request = [self createRequestFor:@"/refresh-state"
-                                               withMethod:@"GET"
-                                           withQueryItems:queryItems
-                                        includeAuthTokens:YES];
+    RequestBuilder *requestBuilder = [self createRequestBuilderFor:@"/refresh-state"
+                                                        withMethod:@"GET"
+                                                    withQueryItems:queryItems
+                                                 includeAuthTokens:YES];
 
-    [self doRequestWithRetry:request
+    [self doRequestWithRetry:requestBuilder
                     useCache:NO
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
      {
@@ -776,12 +816,12 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     [queryItems addObject:[NSURLQueryItem queryItemWithName:@"expectedAmount"
                                                       value:[NSString stringWithFormat:@"-%lld", expectedPrice.longLongValue]]];
 
-    NSMutableURLRequest *request = [self createRequestFor:@"/transaction"
-                                               withMethod:@"POST"
-                                           withQueryItems:queryItems
-                                        includeAuthTokens:YES];
+    RequestBuilder *requestBuilder = [self createRequestBuilderFor:@"/transaction"
+                                                        withMethod:@"POST"
+                                                    withQueryItems:queryItems
+                                                 includeAuthTokens:YES];
 
-    [self doRequestWithRetry:request
+    [self doRequestWithRetry:requestBuilder
                     useCache:NO
            completionHandler:^(NSData *data, NSHTTPURLResponse *response, NSError *error)
      {
@@ -996,61 +1036,55 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     }
 }
 
-
 #pragma mark - helpers
 
-- (NSMutableURLRequest*_Nonnull)createRequestFor:(NSString*_Nonnull)path
-                                      withMethod:(NSString*_Nonnull)method
-                                  withQueryItems:(NSArray<NSURLQueryItem*>*_Nullable)queryItems
-                               includeAuthTokens:(BOOL)includeAuthTokens
+- (RequestBuilder*_Nonnull)createRequestBuilderFor:(NSString*_Nonnull)path
+                                        withMethod:(NSString*_Nonnull)method
+                                    withQueryItems:(NSArray<NSURLQueryItem*>*_Nullable)queryItems
+                                 includeAuthTokens:(BOOL)includeAuthTokens
 {
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-    [request setCachePolicy:NSURLRequestUseProtocolCachePolicy];
-    [request setTimeoutInterval:TIMEOUT_SECS];
+    NSMutableDictionary<NSString*,NSString*> *headers = [[NSMutableDictionary alloc] init];
 
-    [request setHTTPMethod:method];
+    headers[@"User-Agent"] = PSICASH_USER_AGENT;
 
-    NSURLComponents *urlComponents = [[NSURLComponents alloc] init];
-    urlComponents.scheme = self->serverScheme;
-    urlComponents.host = self->serverHostname;
-    urlComponents.port = self->serverPort;
-    urlComponents.path = [PSICASH_API_VERSION_PATH stringByAppendingString:path];
-    urlComponents.queryItems = queryItems;
-
-    [request setURL:urlComponents.URL];
-
-    [request setValue:PSICASH_USER_AGENT forHTTPHeaderField:@"User-Agent"];
-
-    if (includeAuthTokens)
-    {
-        [request setValue:[PsiCash authTokensToHeader:self->userInfo.authTokens]
-       forHTTPHeaderField:AUTH_HEADER];
+    if (includeAuthTokens) {
+        headers[AUTH_HEADER] = [PsiCash authTokensToHeader:self->userInfo.authTokens];
     }
 
-    [PsiCash requestMutator:request];
+    RequestBuilder *requestBuilder = [[RequestBuilder alloc] initWithPath:[PSICASH_API_VERSION_PATH stringByAppendingString:path]
+                                                                   method:method
+                                                                   scheme:self->serverScheme
+                                                                 hostname:self->serverHostname
+                                                                     port:self->serverPort
+                                                               queryItems:queryItems
+                                                                  headers:headers
+                                                                 metadata:self->requestMetadata
+                                                                  timeout:TIMEOUT_SECS];
 
-    return request;
+    [PsiCash requestMutator:requestBuilder];
+
+    return requestBuilder;
 }
 
-+ (void)requestMutator:(NSMutableURLRequest*)request
++ (void)requestMutator:(RequestBuilder*)requestBuilder
 {
     // Only does something when replaced by testing code.
 }
 
 // If error is non-nil, data and response will be nil.
-- (void)doRequestWithRetry:(NSURLRequest*_Nonnull)request
+- (void)doRequestWithRetry:(RequestBuilder*_Nonnull)requestBuilder
                   useCache:(BOOL)useCache
          completionHandler:(void (^_Nonnull)(NSData*_Nullable data,
                                              NSHTTPURLResponse*_Nullable response,
                                              NSError*_Nullable error))completionHandler
 {
-    [self doRequestWithRetryHelper:request
+    [self doRequestWithRetryHelper:requestBuilder
                           useCache:useCache
                    numberOfRetries:REQUEST_RETRY_LIMIT
                  completionHandler:completionHandler];
 }
 
-- (void)doRequestWithRetryHelper:(NSURLRequest*_Nonnull)request
+- (void)doRequestWithRetryHelper:(RequestBuilder*_Nonnull)requestBuilder
                         useCache:(BOOL)useCache
                  numberOfRetries:(NSUInteger)numRetries // Set to REQUEST_RETRY_LIMIT on first call
                completionHandler:(void (^_Nonnull)(NSData*_Nullable data,
@@ -1061,12 +1095,17 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
 
     __block NSInteger remainingRetries = numRetries;
 
+    NSUInteger attempt = REQUEST_RETRY_LIMIT - numRetries + 1;
+    [requestBuilder setAttempt:attempt];
+
     NSURLSessionConfiguration* config = NSURLSessionConfiguration.defaultSessionConfiguration.copy;
     config.timeoutIntervalForRequest = TIMEOUT_SECS;
 
     if (!useCache) {
         config.requestCachePolicy = NSURLRequestReloadIgnoringCacheData;
     }
+
+    NSMutableURLRequest *request = [requestBuilder request];
 
     NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
 
@@ -1095,7 +1134,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
 
                  dispatch_after(retryTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^{
                      // Recursive retry.
-                     [weakSelf doRequestWithRetryHelper:request
+                     [weakSelf doRequestWithRetryHelper:requestBuilder
                                                useCache:useCache
                                         numberOfRetries:remainingRetries
                                       completionHandler:completionHandler];

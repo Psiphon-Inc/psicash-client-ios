@@ -30,6 +30,8 @@
 + (NSDate*_Nullable)dateFromISO8601String:(NSString*_Nonnull)dateString;
 + (NSString*_Nonnull)iso8601StringFromDate:(NSDate*_Nonnull)date;
 
++ (NSString*_Nonnull)encodeURIComponent:(NSString*_Nonnull)string;
+
 @end
 
 #endif /* Utils_h */

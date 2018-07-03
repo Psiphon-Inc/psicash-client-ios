@@ -53,6 +53,10 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 
 - (id _Nonnull)init;
 
+/*! Set values that will be included in the request metadata. This includes
+    client_version, client_region, sponsor_id, and propagation_channel_id. */
+- (void)setRequestMetadataAtKey:(NSString*_Nonnull)k withValue:(id)v;
+
 # pragma mark - Stored info accessors
 
 /*! Returns the stored valid token types. Like ["spender", "indicator"].
@@ -82,9 +86,9 @@ typedef NS_ENUM(NSInteger, PsiCashStatus) {
 - (void)removePurchases:(NSArray<NSString*>*_Nonnull)ids;
 
 /*! Utilizes stored tokens to craft a landing page URL.
-    Returns an error if modification is impossible, or if there is not valid
-    token available. (In that case the error should be logged -- and added to
-    feedback -- and home page opening should proceed. */
+    Returns an error if modification is impossible. (In that case the error
+    should be logged -- and added to feedback -- and home page opening should
+    proceed. */
 - (NSError*_Nullable)modifyLandingPage:(NSString*_Nonnull)url
                            modifiedURL:(NSString*_Nullable*_Nonnull)modifiedURL;
 
