@@ -33,11 +33,13 @@ NSString * const PURCHASE_PRICES_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Purch
 NSString * const PURCHASES_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-Purchases";
 NSString * const SERVER_TIME_DIFF_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-ServerTimeDiff";
 NSString * const LAST_TRANSACTION_ID_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-LastTransactionID";
+NSString * const REQUEST_METADATA_DEFAULTS_KEY = @"Psiphon-PsiCash-UserInfo-RequestMetadata";
 
 
 @interface UserInfo ()
 {
-NSMutableArray<PsiCashPurchase*> *_purchases;
+    NSMutableArray<PsiCashPurchase*> *_purchases;
+    NSMutableDictionary<NSString*,id> *_requestMetadata;
 }
 @end
 
@@ -51,6 +53,7 @@ NSMutableArray<PsiCashPurchase*> *_purchases;
 @synthesize purchases = _purchases;
 @synthesize serverTimeDiff = _serverTimeDiff;
 @synthesize lastTransactionID = _lastTransactionID;
+@synthesize requestMetadata = _requestMetadata;
 
 - (id)init
 {
@@ -60,9 +63,10 @@ NSMutableArray<PsiCashPurchase*> *_purchases;
               isAccount:[defaults integerForKey:ISACCOUNT_DEFAULTS_KEY]];
     self->_balance = [defaults objectForKey:BALANCE_DEFAULTS_KEY];
     self->_purchasePrices = [NSKeyedUnarchiver unarchiveObjectWithData:[defaults objectForKey:PURCHASE_PRICES_DEFAULTS_KEY]];
-    self->_purchases = [NSKeyedUnarchiver unarchiveObjectWithData:[defaults objectForKey:PURCHASES_DEFAULTS_KEY]];;
+    self->_purchases = [NSKeyedUnarchiver unarchiveObjectWithData:[defaults objectForKey:PURCHASES_DEFAULTS_KEY]];
     self->_serverTimeDiff = [defaults doubleForKey:SERVER_TIME_DIFF_DEFAULTS_KEY];
     self->_lastTransactionID = [defaults stringForKey:LAST_TRANSACTION_ID_DEFAULTS_KEY];
+    self->_requestMetadata = [[defaults objectForKey:REQUEST_METADATA_DEFAULTS_KEY] mutableCopy];
 
     return self;
 }
@@ -78,6 +82,7 @@ NSMutableArray<PsiCashPurchase*> *_purchases;
         self.purchases = [NSMutableArray array];
         self.serverTimeDiff = 0.0;
         self.lastTransactionID = nil;
+        self.requestMetadata = [NSMutableDictionary dictionary];
     }
 }
 
@@ -246,6 +251,40 @@ NSMutableArray<PsiCashPurchase*> *_purchases;
     @synchronized(self)
     {
         retVal = [self->_lastTransactionID copy];
+    }
+    return retVal;
+}
+
+- (void)setRequestMetadata:(NSDictionary<NSString *,id>*)requestMetadata
+{
+    @synchronized(self)
+    {
+        [[NSUserDefaults standardUserDefaults] setObject:requestMetadata forKey:REQUEST_METADATA_DEFAULTS_KEY];
+
+        self->_requestMetadata = [requestMetadata mutableCopy];
+    }
+}
+
+- (void)setRequestMetadataAtKey:(NSString*_Nonnull)k withValue:(id)v
+{
+    @synchronized(self)
+    {
+        if (!self->_requestMetadata) {
+            self->_requestMetadata = [NSMutableDictionary dictionary];
+        }
+
+        self->_requestMetadata[k] = v;
+        [[NSUserDefaults standardUserDefaults] setObject:self->_requestMetadata
+                                                  forKey:REQUEST_METADATA_DEFAULTS_KEY];
+    }
+}
+
+- (NSDictionary<NSString*,id>*)requestMetadata
+{
+    NSDictionary<NSString*,id> *retVal;
+    @synchronized(self)
+    {
+        retVal = [self->_requestMetadata copy];
     }
     return retVal;
 }

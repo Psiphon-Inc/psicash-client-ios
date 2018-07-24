@@ -42,6 +42,7 @@
 @property NSArray<PsiCashPurchase*> *purchases;
 @property NSTimeInterval serverTimeDiff;
 @property NSString *lastTransactionID;
+@property NSDictionary<NSString*,id> *requestMetadata;
 
 - (id)init;
 
@@ -53,6 +54,9 @@
 
 //! Add the given purchase to the stored purchases.
 - (void)addPurchase:(PsiCashPurchase*_Nonnull)purchase;
+
+//! Set a request metadata value at the given key.
+- (void)setRequestMetadataAtKey:(NSString*_Nonnull)k withValue:(id)v;
 
 @end
 

@@ -70,7 +70,6 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     NSNumber *serverPort;
     UserInfo *userInfo;
     dispatch_queue_t completionQueue;
-    NSMutableDictionary<NSString*,id> *requestMetadata;
 }
 
 # pragma mark - Init
@@ -86,14 +85,12 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     // authTokens may still be nil if the value has never been stored.
     self->userInfo = [[UserInfo alloc] init];
 
-    self->requestMetadata = [[NSMutableDictionary alloc] init];
-
     return self;
 }
 
 - (void)setRequestMetadataAtKey:(NSString*_Nonnull)k withValue:(id)v
 {
-    self->requestMetadata[k] = v;
+    [self->userInfo setRequestMetadataAtKey:k withValue:v];
 }
 
 # pragma mark - Stored info accessors
@@ -292,7 +289,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     }
 
     // Get the metadata (sponsor ID, etc.)
-    psiCashData[@"metadata"] = self->requestMetadata;
+    psiCashData[@"metadata"] = self->userInfo.requestMetadata;
 
     NSJSONWritingOptions jsonOpts = 0;
     if (@available(iOS 11.0, *)) {
@@ -376,7 +373,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     }
 
     // Get the metadata (sponsor ID, etc.)
-    psiCashData[@"metadata"] = self->requestMetadata;
+    psiCashData[@"metadata"] = self->userInfo.requestMetadata;
 
     NSJSONWritingOptions jsonOpts = 0;
     if (@available(iOS 11.0, *)) {
@@ -1116,7 +1113,7 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
                                                                      port:self->serverPort
                                                                queryItems:queryItems
                                                                   headers:headers
-                                                                 metadata:self->requestMetadata
+                                                                 metadata:self->userInfo.requestMetadata
                                                                   timeout:TIMEOUT_SECS];
 
     [PsiCash requestMutator:requestBuilder];

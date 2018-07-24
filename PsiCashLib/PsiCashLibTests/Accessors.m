@@ -77,6 +77,29 @@
     [super tearDown];
 }
 
+- (void)testRequestMetadata {
+    // This test is mostly to check that persistence is working.
+
+    // Clear previous data
+    [TestHelpers userInfo:self->psiCash].requestMetadata = @{};
+
+    NSDictionary *expected;
+
+    [self->psiCash setRequestMetadataAtKey:@"mykey1" withValue:@"myvalue1"];
+    expected = @{@"mykey1": @"myvalue1"};
+    XCTAssertEqualObjects([TestHelpers userInfo:self->psiCash].requestMetadata, expected);
+
+    [self->psiCash setRequestMetadataAtKey:@"mykey2" withValue:@"myvalue2"];
+    expected = @{@"mykey1": @"myvalue1", @"mykey2": @"myvalue2"};
+    XCTAssertEqualObjects([TestHelpers userInfo:self->psiCash].requestMetadata, expected);
+
+    // Create a new instance of PsiCash to test the persistence of metadata.
+    self->psiCash = [TestHelpers newPsiCash];
+
+    expected = @{@"mykey1": @"myvalue1", @"mykey2": @"myvalue2"};
+    XCTAssertEqualObjects([TestHelpers userInfo:self->psiCash].requestMetadata, expected);
+}
+
 - (void)testAdjustServerTimeToLocal {
     NSDate *arbitraryDate = [NSDate date];
 
