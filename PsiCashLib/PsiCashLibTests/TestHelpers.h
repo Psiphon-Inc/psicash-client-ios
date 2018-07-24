@@ -65,6 +65,9 @@ extern NSString * const EARNER_TOKEN_TYPE;
 //! Equality test with nil support
 + (BOOL)is:(id)a equalTo:(id)b;
 
+//! JSON-ify and base64-encode an NSDictionary.
++ (NSString*_Nonnull)base64JSONDict:(NSDictionary*_Nonnull)dict;
+
 @end
 
 
