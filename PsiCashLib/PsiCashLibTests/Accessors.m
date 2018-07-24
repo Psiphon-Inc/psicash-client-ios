@@ -628,6 +628,8 @@
 
     // Remove all tokens.
     [TestHelpers clearUserInfo:self->psiCash];
+
+    // Simple URL, no tokens or metadata
     err = [self->psiCash modifyLandingPage:@"https://example.com"
                                modifiedURL:&result];
     XCTAssertNil(err);
@@ -716,6 +718,49 @@
     XCTAssertNil(err);
     expected = @"http://sub.example.com/x/y/z.html?a=b&psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
     XCTAssertEqualObjects(result, expected);
+}
+
+- (void)testGetRewardedActivityData {
+    NSString *result;
+    NSDictionary *expected;
+    NSError *err;
+
+    // Remove all tokens. Will fail with no earner token.
+    [TestHelpers clearUserInfo:self->psiCash];
+    err = [self->psiCash getRewardedActivityData:&result];
+    XCTAssertNotNil(err);
+
+    // Set tokens but not an earner token. Will fail.
+    [[TestHelpers userInfo:self->psiCash] setAuthTokens:@{@"faketype1": @"abcd", @"faketype2": @"1234"}
+                                              isAccount:NO];
+    err = [self->psiCash getRewardedActivityData:&result];
+    XCTAssertNotNil(err);
+
+    // Set tokens with an earner token, for use in following tests.
+    [[TestHelpers userInfo:self->psiCash] setAuthTokens:@{EARNER_TOKEN_TYPE: @"mytoken", @"faketype1": @"abcd", @"faketype2": @"1234"}
+                                              isAccount:NO];
+
+    // Simple success. No metadata.
+    err = [self->psiCash getRewardedActivityData:&result];
+    XCTAssertNil(err);
+    expected = @{@"v": @1, @"user_agent": @"Psiphon-PsiCash-iOS", @"tokens": @"mytoken", @"metadata": @{}};
+    XCTAssertEqualObjects(result, [TestHelpers base64JSONDict:expected]);
+
+    // Set metadata
+    [self->psiCash setRequestMetadataAtKey:@"client_region" withValue:@"myclientregion"];
+    [self->psiCash setRequestMetadataAtKey:@"client_version" withValue:@"myclientversion"];
+    [self->psiCash setRequestMetadataAtKey:@"sponsor_id" withValue:@"mysponsorid"];
+    [self->psiCash setRequestMetadataAtKey:@"propagation_channel_id" withValue:@"mypropchannelid"];
+
+    // Success, with metadata.
+    err = [self->psiCash getRewardedActivityData:&result];
+    XCTAssertNil(err);
+    expected = @{@"v": @1, @"user_agent": @"Psiphon-PsiCash-iOS", @"tokens": @"mytoken",
+                 @"metadata": @{@"client_region": @"myclientregion",
+                                @"client_version": @"myclientversion",
+                                @"sponsor_id": @"mysponsorid",
+                                @"propagation_channel_id": @"mypropchannelid"}};
+    XCTAssertEqualObjects(result, [TestHelpers base64JSONDict:expected]);
 }
 
 - (void)testGetDiagnosticInfo {

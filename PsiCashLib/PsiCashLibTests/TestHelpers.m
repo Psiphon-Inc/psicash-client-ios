@@ -254,5 +254,26 @@ int requestMutatorsIndex;
      }];
 }
 
+// Helper for testGetRewardedActivityData
++ (NSString*_Nonnull)base64JSONDict:(NSDictionary*_Nonnull)dict
+{
+    NSJSONWritingOptions jsonOpts = 0;
+    if (@available(iOS 11.0, *)) {
+        // We're going to sort the keys if possible to make testing easier
+        // (expected results can be sane).
+        jsonOpts = NSJSONWritingSortedKeys;
+    }
+
+    NSError *error;
+    NSData *dataJSON = [NSJSONSerialization dataWithJSONObject:dict
+                                                       options:jsonOpts
+                                                         error:&error];
+    assert(!error);
+
+    NSString *dictString = [dataJSON base64EncodedStringWithOptions:0];
+
+    return dictString;
+}
+
 @end
 

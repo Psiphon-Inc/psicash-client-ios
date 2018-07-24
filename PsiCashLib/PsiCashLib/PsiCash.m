@@ -283,7 +283,6 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
     NSMutableDictionary<NSString*,NSObject*> *psiCashData = [[NSMutableDictionary alloc] init];
     psiCashData[@"v"] = @2;
 
-    // Get the earner token. If we don't have one, we can't modify the URL.
     if (!self->userInfo.authTokens ||
         ![self->userInfo.authTokens[EARNER_TOKEN_TYPE] isKindOfClass:[NSString class]]) {
         psiCashData[@"tokens"] = NSNull.null;
@@ -339,6 +338,65 @@ NSString * const EARNER_TOKEN_TYPE = @"earner";
                               [Utils encodeURIComponent:dataString]];
         *modifiedURL = [*modifiedURL stringByAppendingString:fragment];
     }
+
+    return nil;
+}
+
+- (NSError*_Nullable)getRewardedActivityData:(NSString*_Nullable*_Nonnull)dataString
+{
+    *dataString = nil;
+
+    /*
+     The data is base64-encoded JSON-serialized with this structure:
+     {
+         "v": 1,
+         "tokens": "earner token",
+         "metadata": {
+             "client_region": "CA",
+             "client_version": "123",
+             "sponsor_id": "ABCDEFGH12345678",
+             "propagation_channel_id": "ABCDEFGH12345678"
+         },
+         "user_agent": "PsiCash-iOS-Client"
+     }
+    */
+
+    NSMutableDictionary<NSString*,NSObject*> *psiCashData = [[NSMutableDictionary alloc] init];
+    psiCashData[@"v"] = @1;
+    psiCashData[@"user_agent"] = PSICASH_USER_AGENT;
+
+    // Get the earner token. If we don't have one, the webhook can't succeed.
+    if (!self->userInfo.authTokens ||
+        ![self->userInfo.authTokens[EARNER_TOKEN_TYPE] isKindOfClass:[NSString class]]) {
+        return [NSError errorWithMessage:@"earner token missing; can't create webhoook data"
+                            fromFunction:__FUNCTION__];
+    }
+    else {
+        psiCashData[@"tokens"] = self->userInfo.authTokens[EARNER_TOKEN_TYPE];
+    }
+
+    // Get the metadata (sponsor ID, etc.)
+    psiCashData[@"metadata"] = self->requestMetadata;
+
+    NSJSONWritingOptions jsonOpts = 0;
+    if (@available(iOS 11.0, *)) {
+        // We're going to sort the keys if possible to make testing easier
+        // (expected results can be sane).
+        jsonOpts = NSJSONWritingSortedKeys;
+    }
+
+    NSError *error;
+    NSData *dataJSON = [NSJSONSerialization dataWithJSONObject:psiCashData
+                                                       options:jsonOpts
+                                                         error:&error];
+
+    if (error) {
+        return [NSError errorWrapping:error
+                          withMessage:@"JSON serialization failed"
+                         fromFunction:__FUNCTION__];
+    }
+
+    *dataString = [dataJSON base64EncodedStringWithOptions:0];
 
     return nil;
 }
