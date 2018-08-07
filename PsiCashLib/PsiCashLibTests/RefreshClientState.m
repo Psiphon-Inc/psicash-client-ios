@@ -153,6 +153,9 @@
 - (void)testNoPurchaseClasses {
     XCTestExpectation *exp = [self expectationWithDescription:@"Success: no purchase classes"];
 
+    // Clear out any pre-existing purchase prices.
+    [TestHelpers userInfo:self->psiCash].purchasePrices = nil;
+
     NSArray *purchaseClasses =  @[];
 
     [self->psiCash refreshState:purchaseClasses
@@ -170,7 +173,6 @@
          XCTAssertNotNil([self->psiCash balance]);
          XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
 
-         XCTAssertNotNil([self->psiCash purchasePrices]);
          XCTAssertEqual([self->psiCash purchasePrices].count, 0);
 
          [exp fulfill];
