@@ -106,7 +106,7 @@
                   XCTAssertNil(error);
                   XCTAssertEqual(status, PsiCashStatus_Success);
                   XCTAssertNotNil(purchase);
-                  XCTAssertEqual([self->psiCash balance], @(prePurchaseBalance.integerValue - ONE_TRILLION));
+                  XCTAssertEqual([self->psiCash balance].longLongValue, @(prePurchaseBalance.integerValue - ONE_TRILLION).longLongValue);
 
                   XCTAssertNotNil(purchase.localTimeExpiry);
                   NSDate *now = [NSDate dateWithTimeIntervalSinceNow:0];
@@ -145,7 +145,7 @@
         XCTAssertEqual(status, PsiCashStatus_Success);
 
         NSNumber *prePurchaseBalance = [self->psiCash balance];
-        XCTAssertGreaterThanOrEqual(prePurchaseBalance, @0);
+        XCTAssertGreaterThanOrEqual(prePurchaseBalance.longLongValue, 0LL);
 
         [self->psiCash newExpiringPurchaseTransactionForClass:@TEST_DEBIT_TRANSACTION_CLASS
                                             withDistinguisher:@TEST_INT64_MAX_DISTINGUISHER
@@ -156,7 +156,7 @@
          {
              XCTAssertNil(error);
              XCTAssertEqual(status, PsiCashStatus_InsufficientBalance);
-             XCTAssertEqual([self->psiCash balance], prePurchaseBalance);
+             XCTAssertEqual([self->psiCash balance].longLongValue, prePurchaseBalance.longLongValue);
              XCTAssertNil(purchase);
 
              [exp fulfill];
@@ -187,7 +187,7 @@
               XCTAssertNil(error);
               XCTAssertEqual(status, PsiCashStatus_Success); // IF THIS FAILS, WAIT ONE MINUTE AND TRY AGAIN
               XCTAssertNotNil(successfulPurchase);
-              XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
+              XCTAssertGreaterThanOrEqual([self->psiCash balance].longLongValue, 0LL);
               XCTAssertNotNil(successfulPurchase.ID);
               XCTAssertNil(successfulPurchase.authorization);
               XCTAssertNotNil(successfulPurchase.localTimeExpiry);
@@ -241,7 +241,7 @@
          XCTAssertNil(error);
          XCTAssertEqual(status, PsiCashStatus_TransactionAmountMismatch);
          XCTAssertNil(purchase);
-         XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
+         XCTAssertGreaterThanOrEqual([self->psiCash balance].longLongValue, 0LL);
 
          [exp fulfill];
      }];

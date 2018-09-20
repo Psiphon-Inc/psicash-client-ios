@@ -80,7 +80,7 @@
          XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
          XCTAssertNotNil([self->psiCash balance]);
-         XCTAssertEqual([self->psiCash balance].integerValue, 0);
+         XCTAssertEqual([self->psiCash balance].longLongValue, 0LL);
 
          XCTAssertNotNil([self->psiCash purchasePrices]);
          XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
@@ -111,7 +111,7 @@
          XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
          XCTAssertNotNil([self->psiCash balance]);
-         XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
+         XCTAssertGreaterThanOrEqual([self->psiCash balance].longLongValue, 0LL);
 
          XCTAssertNotNil([self->psiCash purchasePrices]);
          XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
@@ -132,7 +132,7 @@
               XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
               XCTAssertNotNil([self->psiCash balance]);
-              XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
+              XCTAssertGreaterThanOrEqual([self->psiCash balance].longLongValue, 0LL);
 
               XCTAssertNotNil([self->psiCash purchasePrices]);
               XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
@@ -171,7 +171,7 @@
          XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
          XCTAssertNotNil([self->psiCash balance]);
-         XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
+         XCTAssertGreaterThanOrEqual([self->psiCash balance].longLongValue, 0LL);
 
          XCTAssertEqual([self->psiCash purchasePrices].count, 0);
 
@@ -199,7 +199,7 @@
          XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
          XCTAssertNotNil([self->psiCash balance]);
-         XCTAssertGreaterThanOrEqual([self->psiCash balance].integerValue, 0);
+         XCTAssertGreaterThanOrEqual([self->psiCash balance].longLongValue, 0LL);
 
          XCTAssertNotNil([self->psiCash purchasePrices]);
          XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 3);
@@ -265,7 +265,7 @@
 
          NSNumber *originalBalance = [self->psiCash balance];
          XCTAssertNotNil(originalBalance);
-         XCTAssertGreaterThanOrEqual(originalBalance.integerValue, 0);
+         XCTAssertGreaterThanOrEqual(originalBalance.longLongValue, 0LL);
 
          XCTAssertNotNil([self->psiCash purchasePrices]);
          XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
@@ -287,8 +287,8 @@
 
                    // Is the balance bigger?
                    NSNumber *newBalance = [self->psiCash balance];
-                   XCTAssertEqual(newBalance.integerValue,
-                                  originalBalance.integerValue + ONE_TRILLION);
+                   XCTAssertEqual(newBalance.longLongValue,
+                                  originalBalance.longLongValue + ONE_TRILLION);
 
                    [exp fulfill];
                }];
