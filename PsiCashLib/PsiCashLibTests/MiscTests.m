@@ -80,6 +80,9 @@
 }
 
 - (void)testCreateRequestBuilder {
+    // Reset the persisted request metadata, as it will affect the test results.
+    [TestHelpers userInfo:self->psiCash].requestMetadata = @{};
+
     NSString *expectedMetadata = @"{\"attempt\":null}";
 
     // Start simple
