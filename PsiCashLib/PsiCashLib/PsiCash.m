@@ -63,6 +63,7 @@ NSString * const PSICASH_USER_AGENT = @"Psiphon-PsiCash-iOS";
 NSUInteger const REQUEST_RETRY_LIMIT = 2;
 NSString * const LANDING_PAGE_PARAM_KEY = @"psicash";
 NSString * const EARNER_TOKEN_TYPE = @"earner";
+long long const MAX_INITIAL_BALANCE = 100000000000LL;
 
 @implementation PsiCash {
     NSString *serverScheme;

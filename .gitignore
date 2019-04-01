@@ -5,6 +5,10 @@ build-git-commit.txt
 Secret*
 secret*
 
+###################
+# VSCode
+
+.vscode/
 
 
 ###################

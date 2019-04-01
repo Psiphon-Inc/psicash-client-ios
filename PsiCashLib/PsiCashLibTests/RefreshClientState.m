@@ -80,7 +80,8 @@
          XCTAssertGreaterThanOrEqual([self->psiCash validTokenTypes].count, 3);
 
          XCTAssertNotNil([self->psiCash balance]);
-         XCTAssertEqual([self->psiCash balance].longLongValue, 0LL);
+         XCTAssertLessThanOrEqual(0, [self->psiCash balance].longLongValue);
+         XCTAssertGreaterThanOrEqual(MAX_INITIAL_BALANCE, [self->psiCash balance].longLongValue);
 
          XCTAssertNotNil([self->psiCash purchasePrices]);
          XCTAssertGreaterThanOrEqual([self->psiCash purchasePrices].count, 2);
@@ -393,7 +394,10 @@
               XCTAssertNotNil([self->psiCash validTokenTypes]);
               XCTAssertEqual([self->psiCash validTokenTypes].count, 0);
 
-              XCTAssert([self->psiCash balance] == nil || [[self->psiCash balance] isEqual:@0]);
+              if ([self->psiCash balance]) {
+                  XCTAssertLessThanOrEqual(0, [self->psiCash balance].longLongValue);
+                  XCTAssertGreaterThanOrEqual(MAX_INITIAL_BALANCE, [self->psiCash balance].longLongValue);
+              }
 
               XCTAssertEqual([[self->psiCash purchasePrices] count], 0);
 
