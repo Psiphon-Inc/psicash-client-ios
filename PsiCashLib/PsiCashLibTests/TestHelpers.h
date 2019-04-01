@@ -30,6 +30,7 @@
 #import "SecretTestValues.h" // This file is in CipherShare
 
 extern NSString * const EARNER_TOKEN_TYPE;
+extern long long const MAX_INITIAL_BALANCE;
 
 @interface TestHelpers : NSObject
 
