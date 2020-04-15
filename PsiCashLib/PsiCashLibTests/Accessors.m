@@ -96,7 +96,7 @@
     // Create a new instance of PsiCash to test the persistence of metadata.
     self->psiCash = [TestHelpers newPsiCash];
 
-    expected = @{@"mykey1": @"myvalue1", @"mykey2": @"myvalue2"};
+    expected = @{@"v": @1, @"user_agent": @"Psiphon-PsiCash-iOS", @"mykey1": @"myvalue1", @"mykey2": @"myvalue2"};
     XCTAssertEqualObjects([TestHelpers userInfo:self->psiCash].requestMetadata, expected);
 }
 
@@ -656,7 +656,7 @@
     err = [self->psiCash modifyLandingPage:@"https://example.com"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"https://example.com#psicash=%7B%22metadata%22%3A%7B%7D%2C%22tokens%22%3Anull%2C%22v%22%3A2%7D";
+    expected = @"https://example.com#psicash=%7B%22metadata%22%3A%7B%22user%5Fagent%22%3A%22Psiphon%2DPsiCash%2DiOS%22%2C%22v%22%3A1%7D%2C%22tokens%22%3Anull%2C%22v%22%3A2%7D";
     XCTAssertEqualObjects(result, expected);
 
     // Set tokens but not an earner token.
@@ -665,7 +665,7 @@
     err = [self->psiCash modifyLandingPage:@"https://example.com"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"https://example.com#psicash=%7B%22metadata%22%3A%7B%7D%2C%22tokens%22%3Anull%2C%22v%22%3A2%7D";
+    expected = @"https://example.com#psicash=%7B%22metadata%22%3A%7B%22user%5Fagent%22%3A%22Psiphon%2DPsiCash%2DiOS%22%2C%22v%22%3A1%7D%2C%22tokens%22%3Anull%2C%22v%22%3A2%7D";
     XCTAssertEqualObjects(result, expected);
 
     // Set tokens with an earner token, for use in following tests.
@@ -686,60 +686,60 @@
     err = [self->psiCash modifyLandingPage:@"https://example.com"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"https://example.com#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
+    expected = @"https://example.com#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%2C%22user%5Fagent%22%3A%22Psiphon%2DPsiCash%2DiOS%22%2C%22v%22%3A1%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
     XCTAssertEqualObjects(result, expected);
 
     // Has fragment
     err = [self->psiCash modifyLandingPage:@"https://example.com#anchor"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"https://example.com?psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
+    expected = @"https://example.com?psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22,%22user_agent%22:%22Psiphon-PsiCash-iOS%22,%22v%22:1%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
     XCTAssertEqualObjects(result, expected);
 
     // Has query
     err = [self->psiCash modifyLandingPage:@"https://example.com?a=b"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"https://example.com?a=b#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
+    expected = @"https://example.com?a=b#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%2C%22user%5Fagent%22%3A%22Psiphon%2DPsiCash%2DiOS%22%2C%22v%22%3A1%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
     XCTAssertEqualObjects(result, expected);
 
     // Has query and fragment
     err = [self->psiCash modifyLandingPage:@"https://example.com?a=b#anchor"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"https://example.com?a=b&psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
+    expected = @"https://example.com?a=b&psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22,%22user_agent%22:%22Psiphon-PsiCash-iOS%22,%22v%22:1%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
     XCTAssertEqualObjects(result, expected);
 
     // Has query and fragment; query has trailing &
     err = [self->psiCash modifyLandingPage:@"https://example.com?a=b&#anchor"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"https://example.com?a=b&&psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
+    expected = @"https://example.com?a=b&&psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22,%22user_agent%22:%22Psiphon-PsiCash-iOS%22,%22v%22:1%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
     XCTAssertEqualObjects(result, expected);
 
     // Some path variations
     err = [self->psiCash modifyLandingPage:@"http://example.com/"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"http://example.com/#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
+    expected = @"http://example.com/#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%2C%22user%5Fagent%22%3A%22Psiphon%2DPsiCash%2DiOS%22%2C%22v%22%3A1%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
     XCTAssertEqualObjects(result, expected);
 
     err = [self->psiCash modifyLandingPage:@"http://sub.example.com/"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"http://sub.example.com/#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
+    expected = @"http://sub.example.com/#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%2C%22user%5Fagent%22%3A%22Psiphon%2DPsiCash%2DiOS%22%2C%22v%22%3A1%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
     XCTAssertEqualObjects(result, expected);
 
     err = [self->psiCash modifyLandingPage:@"http://example.com/x/y/z.html"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"http://example.com/x/y/z.html#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
+    expected = @"http://example.com/x/y/z.html#psicash=%7B%22metadata%22%3A%7B%22client%5Fregion%22%3A%22myclientregion%22%2C%22client%5Fversion%22%3A%22myclientversion%22%2C%22propagation%5Fchannel%5Fid%22%3A%22mypropchannelid%22%2C%22sponsor%5Fid%22%3A%22mysponsorid%22%2C%22user%5Fagent%22%3A%22Psiphon%2DPsiCash%2DiOS%22%2C%22v%22%3A1%7D%2C%22tokens%22%3A%22mytoken%22%2C%22v%22%3A2%7D";
     XCTAssertEqualObjects(result, expected);
 
     err = [self->psiCash modifyLandingPage:@"http://sub.example.com/x/y/z.html?a=b#anchor"
                                modifiedURL:&result];
     XCTAssertNil(err);
-    expected = @"http://sub.example.com/x/y/z.html?a=b&psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
+    expected = @"http://sub.example.com/x/y/z.html?a=b&psicash=%7B%22metadata%22:%7B%22client_region%22:%22myclientregion%22,%22client_version%22:%22myclientversion%22,%22propagation_channel_id%22:%22mypropchannelid%22,%22sponsor_id%22:%22mysponsorid%22,%22user_agent%22:%22Psiphon-PsiCash-iOS%22,%22v%22:1%7D,%22tokens%22:%22mytoken%22,%22v%22:2%7D#anchor";
     XCTAssertEqualObjects(result, expected);
 }
 
@@ -763,10 +763,10 @@
     [[TestHelpers userInfo:self->psiCash] setAuthTokens:@{EARNER_TOKEN_TYPE: @"mytoken", @"faketype1": @"abcd", @"faketype2": @"1234"}
                                               isAccount:NO];
 
-    // Simple success. No metadata.
+    // Simple success. No additional metadata.
     err = [self->psiCash getRewardedActivityData:&result];
     XCTAssertNil(err);
-    expected = @{@"v": @1, @"user_agent": @"Psiphon-PsiCash-iOS", @"tokens": @"mytoken", @"metadata": @{}};
+    expected = @{@"v": @1, @"tokens": @"mytoken", @"metadata": @{@"v": @1, @"user_agent": @"Psiphon-PsiCash-iOS"}};
     XCTAssertEqualObjects(result, [TestHelpers base64JSONDict:expected]);
 
     // Set metadata
@@ -775,11 +775,13 @@
     [self->psiCash setRequestMetadataAtKey:@"sponsor_id" withValue:@"mysponsorid"];
     [self->psiCash setRequestMetadataAtKey:@"propagation_channel_id" withValue:@"mypropchannelid"];
 
-    // Success, with metadata.
+    // Success, with additional metadata.
     err = [self->psiCash getRewardedActivityData:&result];
     XCTAssertNil(err);
-    expected = @{@"v": @1, @"user_agent": @"Psiphon-PsiCash-iOS", @"tokens": @"mytoken",
-                 @"metadata": @{@"client_region": @"myclientregion",
+    expected = @{@"v": @1,
+                 @"tokens": @"mytoken",
+                 @"metadata": @{@"v": @1, @"user_agent": @"Psiphon-PsiCash-iOS",
+                                @"client_region": @"myclientregion",
                                 @"client_version": @"myclientversion",
                                 @"sponsor_id": @"mysponsorid",
                                 @"propagation_channel_id": @"mypropchannelid"}};
