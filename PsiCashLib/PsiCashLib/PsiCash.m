@@ -85,8 +85,17 @@ long long const MAX_INITIAL_BALANCE = 100000000000LL;
 
     // authTokens may still be nil if the value has never been stored.
     self->userInfo = [[UserInfo alloc] init];
+    
+    [self initRequestMetadata];
 
     return self;
+}
+
+// This is a separate method because it'll need to be called by test helpers after clearing UserInfo
+- (void)initRequestMetadata
+{
+    [self setRequestMetadataAtKey:@"v" withValue:@1];
+    [self setRequestMetadataAtKey:@"user_agent" withValue:PSICASH_USER_AGENT];
 }
 
 - (void)setRequestMetadataAtKey:(NSString*_Nonnull)k withValue:(id)v
@@ -350,18 +359,18 @@ long long const MAX_INITIAL_BALANCE = 100000000000LL;
          "v": 1,
          "tokens": "earner token",
          "metadata": {
+             "v": 1,
              "client_region": "CA",
              "client_version": "123",
              "sponsor_id": "ABCDEFGH12345678",
-             "propagation_channel_id": "ABCDEFGH12345678"
+             "propagation_channel_id": "ABCDEFGH12345678",
+             "user_agent": "PsiCash-iOS-Client"
          },
-         "user_agent": "PsiCash-iOS-Client"
      }
     */
 
     NSMutableDictionary<NSString*,NSObject*> *psiCashData = [[NSMutableDictionary alloc] init];
     psiCashData[@"v"] = @1;
-    psiCashData[@"user_agent"] = PSICASH_USER_AGENT;
 
     // Get the earner token. If we don't have one, the webhook can't succeed.
     if (!self->userInfo.authTokens ||
