@@ -44,6 +44,8 @@ int const TEST_SERVER_PORT = 51337;
 
 // Expose some private methods to help with testing
 @interface PsiCash (Testing)
+- (void)initRequestMetadata;
+
 - (RequestBuilder*_Nonnull)createRequestBuilderFor:(NSString*_Nonnull)path
                                         withMethod:(NSString*_Nonnull)method
                                     withQueryItems:(NSArray*_Nullable)queryItems
@@ -124,6 +126,9 @@ int requestMutatorsIndex;
 + (void)clearUserInfo:(PsiCash*_Nonnull)psiCash
 {
     [[TestHelpers userInfo:psiCash] clear];
+    
+    // Some metadata initialization needs to be done after clearing
+    [psiCash initRequestMetadata];
 }
 
 + (void)setIsAccount:(PsiCash*_Nonnull)psiCash
@@ -151,7 +156,7 @@ int requestMutatorsIndex;
                  completion:(void (^_Nonnull)(BOOL supported))completionHandler
 {
     [TestHelpers setRequestMutators:psiCash
-                           mutators:@[@"CheckEnabled"]];  // sleep for 11 secs
+                           mutators:@[@"CheckEnabled"]];
 
     RequestBuilder *requestBuilder = [psiCash createRequestBuilderFor:@"/refresh-state"
                                                            withMethod:@"GET"
